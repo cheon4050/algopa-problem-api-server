@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ProblemsModule } from './problems/problems.module';
 import * as Joi from '@hapi/joi';
 
 @Module({
@@ -18,6 +19,7 @@ import * as Joi from '@hapi/joi';
         DATABASE_PORT: Joi.number().required(),
       }),
     }),
+    ProblemsModule,
   ],
   controllers: [],
   providers: [],
