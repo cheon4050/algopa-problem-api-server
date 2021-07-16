@@ -15,7 +15,6 @@ import * as Joi from '@hapi/joi';
         DATABASE_USER: Joi.string().required(),
         DATABASE_PASSWORD: Joi.string().required(),
         DATABASE_DB: Joi.string().required(),
-        DATABASE_TYPE: Joi.string().required(),
         DATABASE_PORT: Joi.number().required(),
       }),
     }),
