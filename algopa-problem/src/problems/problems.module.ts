@@ -2,10 +2,11 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { ProblemsController } from './problems.controller';
 import { ProblemsService } from './problems.service';
 import { Neo4jService } from 'nest-neo4j';
+import { RoadmapMockService } from './mock/roadmap.mock.service';
 
 @Module({
   controllers: [ProblemsController],
-  providers: [ProblemsService],
+  providers: [ProblemsService, RoadmapMockService],
 })
 export class ProblemsModule implements OnModuleInit {
   constructor(private readonly neo4jService: Neo4jService) {}
