@@ -1,6 +1,6 @@
 export type RecommendationMockType = {
   id: number;
-  level: number;
+  level: string;
   link: string;
   title: string;
 };
