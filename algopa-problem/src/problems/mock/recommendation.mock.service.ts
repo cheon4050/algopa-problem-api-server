@@ -32,7 +32,7 @@ export class RecommendationMockService {
     return {
       id,
       title,
-      level: `https://algopa.s3.ap-northeast-2.amazonaws.com/level+${
+      levelImgLink: `https://algopa.s3.ap-northeast-2.amazonaws.com/level+${
         Math.floor(Math.random() * 2) + 1
       }.png`,
       link: `https://www.acmicpc.net/problem/${id}`,
