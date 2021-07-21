@@ -72,7 +72,9 @@ export class RoadmapMockService {
       node_id: 'p' + problemLength,
       id,
       title,
-      level: 1,
+      levelImgLink: `https://algopa.s3.ap-northeast-2.amazonaws.com/level+${
+        Math.floor(Math.random() * 2) + 1
+      }.png`,
       link: `https://www.acmicpc.net/problem/${id}`,
       isSolved: false,
     };
