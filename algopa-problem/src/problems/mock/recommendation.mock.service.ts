@@ -15,10 +15,12 @@ export class RecommendationMockService {
     while (recommendationProblemsMock.length < limit && problems.length != 0) {
       const selectProblemIndex = Math.floor(Math.random() * problems.length);
 
-      const [id, title] = problems.splice(selectProblemIndex, 1)[0].split(':');
+      const [number, title] = problems
+        .splice(selectProblemIndex, 1)[0]
+        .split(':');
 
       recommendationProblemsMock.push(
-        this.createRecommendationProblemMockObject({ id, title }),
+        this.createRecommendationProblemMockObject({ number, title }),
       );
     }
 
@@ -26,16 +28,17 @@ export class RecommendationMockService {
   }
 
   private createRecommendationProblemMockObject = ({
-    id,
+    number,
     title,
   }): RecommendationMockType => {
     return {
-      id,
+      id: Math.floor(Math.random() * 99999),
+      number,
       title,
       levelImgLink: `https://algopa.s3.ap-northeast-2.amazonaws.com/level+${
         Math.floor(Math.random() * 2) + 1
       }.png`,
-      link: `https://www.acmicpc.net/problem/${id}`,
+      link: `https://www.acmicpc.net/problem/${number}`,
     };
   };
 }
