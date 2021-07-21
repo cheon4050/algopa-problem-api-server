@@ -7,6 +7,7 @@ export type MockRoadMapType = {
 export type ProblemType = {
   node_id: string;
   id: number;
+  number: number;
   levelImgLink: string;
   link: string;
   title: string;

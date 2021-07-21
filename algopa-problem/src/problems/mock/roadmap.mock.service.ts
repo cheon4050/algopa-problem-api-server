@@ -40,9 +40,9 @@ export class RoadmapMockService {
 
         currentCategoryNodeId = categoryObject.node_id;
       } else if (row) {
-        const [id, title] = row.split(':');
+        const [number, title] = row.split(':');
         const problemObject = this.createProblemObject({
-          id,
+          number,
           title,
           problemLength: mockRoadMapData.problems.length,
         });
@@ -67,15 +67,20 @@ export class RoadmapMockService {
     };
   };
 
-  private createProblemObject = ({ id, title, problemLength }): ProblemType => {
+  private createProblemObject = ({
+    number,
+    title,
+    problemLength,
+  }): ProblemType => {
     return {
       node_id: 'p' + problemLength,
-      id,
+      id: Math.floor(Math.random() * 99999),
+      number,
       title,
       levelImgLink: `https://algopa.s3.ap-northeast-2.amazonaws.com/level+${
         Math.floor(Math.random() * 2) + 1
       }.png`,
-      link: `https://www.acmicpc.net/problem/${id}`,
+      link: `https://www.acmicpc.net/problem/${number}`,
       isSolved: false,
     };
   };
