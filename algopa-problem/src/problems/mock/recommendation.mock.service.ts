@@ -20,7 +20,10 @@ export class RecommendationMockService {
         .split(':');
 
       recommendationProblemsMock.push(
-        this.createRecommendationProblemMockObject({ number, title }),
+        this.createRecommendationProblemMockObject({
+          number: parseInt(number),
+          title,
+        }),
       );
     }
 

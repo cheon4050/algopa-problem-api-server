@@ -42,7 +42,7 @@ export class RoadmapMockService {
       } else if (row) {
         const [number, title] = row.split(':');
         const problemObject = this.createProblemObject({
-          number,
+          number: parseInt(number),
           title,
           problemLength: mockRoadMapData.problems.length,
         });
