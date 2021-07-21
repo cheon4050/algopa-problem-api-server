@@ -5,7 +5,7 @@ export type MockRoadMapType = {
 };
 
 export type ProblemType = {
-  node_id: string;
+  nodeId: string;
   id: number;
   number: number;
   levelImgLink: string;
@@ -15,7 +15,7 @@ export type ProblemType = {
 };
 
 export type CategoryType = {
-  node_id: string;
+  nodeId: string;
   id: number;
   name: string;
   failureRate: number;

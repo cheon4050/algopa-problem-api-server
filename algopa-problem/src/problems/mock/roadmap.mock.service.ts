@@ -33,12 +33,12 @@ export class RoadmapMockService {
           mockRoadMapData.edges.push(
             this.createEdgeObject({
               from: currentCategoryNodeId,
-              to: categoryObject.node_id,
+              to: categoryObject.nodeId,
             }),
           );
         }
 
-        currentCategoryNodeId = categoryObject.node_id;
+        currentCategoryNodeId = categoryObject.nodeId;
       } else if (row) {
         const [number, title] = row.split(':');
         const problemObject = this.createProblemObject({
@@ -49,7 +49,7 @@ export class RoadmapMockService {
         mockRoadMapData.problems.push(problemObject);
         mockRoadMapData.edges.push(
           this.createEdgeObject({
-            from: problemObject.node_id,
+            from: problemObject.nodeId,
             to: currentCategoryNodeId,
           }),
         );
@@ -73,7 +73,7 @@ export class RoadmapMockService {
     problemLength,
   }): ProblemType => {
     return {
-      node_id: 'p' + problemLength,
+      nodeId: 'p' + problemLength,
       id: Math.floor(Math.random() * 99999),
       number,
       title,
@@ -87,7 +87,7 @@ export class RoadmapMockService {
 
   private createCategoryObject = ({ name, categoryLength }): CategoryType => {
     return {
-      node_id: 'c' + categoryLength,
+      nodeId: 'c' + categoryLength,
       id: categoryLength,
       name,
       failureRate: 0,
