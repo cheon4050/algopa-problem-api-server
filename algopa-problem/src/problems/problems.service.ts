@@ -13,15 +13,14 @@ export class ProblemsService {
     private readonly recommendationMockService: RecommendationMockService,
   ) {}
 
-  async getRoadMap(userId: number): Promise<MockRoadMapType> {
+  async getRoadMap(userId?: number): Promise<MockRoadMapType> {
     return this.roadmapMockService.createRoadMapMockData();
   }
 
-  async recommendProblem({
-    userId,
-    limit,
-    type,
-  }): Promise<RecommendationMockType[]> {
+  async recommendProblem(
+    { limit, type },
+    userId?: number,
+  ): Promise<RecommendationMockType[]> {
     return this.recommendationMockService.getRandomProblems(limit ? limit : 20);
   }
 }
