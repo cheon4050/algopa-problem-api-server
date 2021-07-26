@@ -11,7 +11,7 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ConfigService } from '@nestjs/config';
-import { ERROR_MESSAGES } from '../../messages/error.messages';
+import { ERROR_MESSAGES } from '../messages/error.messages';
 
 @Injectable()
 export class ErrorMessagesInterceptor implements NestInterceptor {
