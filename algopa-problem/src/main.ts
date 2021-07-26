@@ -3,10 +3,12 @@ import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ErrorMessagesInterceptor } from './common/interceptors/error.messages.interceptor';
+import * as morgan from 'morgan';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService: ConfigService = app.get(ConfigService);
+  app.use(morgan('combined'));
   app.enableCors({ origin: '*' });
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
