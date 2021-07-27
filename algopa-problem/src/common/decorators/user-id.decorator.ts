@@ -5,12 +5,16 @@ import {
 } from '@nestjs/common';
 
 export const UserId = createParamDecorator(
-  (data: string, ctx: ExecutionContext): number => {
+  (isEssential: boolean, ctx: ExecutionContext): number | null => {
     const request = ctx.switchToHttp().getRequest();
     if (request.headers['id']) {
       return parseInt(request.headers['id']);
     } else {
-      throw new UnauthorizedException('UNAUTHORIZED_USER');
+      if (isEssential) {
+        throw new UnauthorizedException('UNAUTHORIZED_USER');
+      } else {
+        return null;
+      }
     }
   },
 );
