@@ -11,30 +11,32 @@ import { RecommendationLimitValidatePipe } from './pipes/recommendation.limit.va
 export class ProblemsController {
   constructor(private readonly problemsService: ProblemsService) {}
 
-  @VersionGet({ path: 'default/roadmap', version: 'v1' })
-  async getDefaultRoadMap(): Promise<MockRoadMapType> {
-    return await this.problemsService.getRoadMap();
-  }
-
   @VersionGet({ path: 'roadmap', version: 'v1' })
-  async getRoadMap(@UserId() userId: number): Promise<MockRoadMapType> {
-    return await this.problemsService.getRoadMap(userId);
-  }
-
-  @VersionGet({ path: 'default/recommendation', version: 'v1' })
-  async getDefaultRecommendProblem(
-    @Query('limit', RecommendationLimitValidatePipe) limit: number,
-    @Query('type', RecommendationTypeValidatePipe) type: string,
-  ): Promise<RecommendationMockType[]> {
-    return await this.problemsService.recommendProblem({ limit, type });
+  async getRoadMap(
+    @UserId(false) userId: number | null,
+  ): Promise<MockRoadMapType> {
+    if (userId) {
+      return await this.problemsService.getRoadMap(userId);
+    } else {
+      // default
+      return await this.problemsService.getRoadMap();
+    }
   }
 
   @VersionGet({ path: 'recommendation', version: 'v1' })
   async recommendProblem(
-    @UserId() userId: number,
+    @UserId(false) userId: number | null,
     @Query('limit', RecommendationLimitValidatePipe) limit: number,
     @Query('type', RecommendationTypeValidatePipe) type: string,
   ): Promise<RecommendationMockType[]> {
-    return await this.problemsService.recommendProblem({ limit, type }, userId);
+    if (userId) {
+      return await this.problemsService.recommendProblem(
+        { limit, type },
+        userId,
+      );
+    } else {
+      // default
+      return await this.problemsService.recommendProblem({ limit, type });
+    }
   }
 }
