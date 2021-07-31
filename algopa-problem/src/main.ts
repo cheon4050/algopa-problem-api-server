@@ -1,30 +1,30 @@
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger, ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ErrorMessagesInterceptor } from './common/interceptors/error.messages.interceptor';
-import * as morgan from 'morgan';
+import { AppConfigService } from './config/app/config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const configService: ConfigService = app.get(ConfigService);
-  app.use(morgan('combined'));
-  app.enableCors({ origin: '*' });
-  app.setGlobalPrefix('api');
+  const appConfig: AppConfigService =
+    app.get<AppConfigService>(AppConfigService);
+
+  app.setGlobalPrefix(
+    appConfig.node === 'dev'
+      ? 'develop'
+      : appConfig.node === 'test'
+      ? 'test'
+      : '',
+  );
+
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
       transform: true,
+      forbidNonWhitelisted: true,
+      whitelist: true,
     }),
   );
-  app.useGlobalInterceptors(new ErrorMessagesInterceptor(configService));
-  await app.listen(configService.get('APP_PORT'));
-  Logger.log(
-    `Server running on ${configService.get('APP_DOMAIN')}:${configService.get(
-      'APP_PORT',
-    )}`,
-    'Bootstrap',
-  );
+
+  await app.listen(appConfig.port);
+  Logger.log(`Server running on ${appConfig.port} port`, 'Bootstrap');
 }
 bootstrap();

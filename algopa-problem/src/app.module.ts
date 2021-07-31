@@ -1,39 +1,37 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
+import { AppConfigModule } from './config/app/config.module';
 import { ProblemsModule } from './problems/problems.module';
-import * as Joi from '@hapi/joi';
-import { Neo4jConfig, Neo4jModule } from 'nest-neo4j';
-
+import { Neo4jDatabaseProviderModule } from './provider/database/config.module';
+import { LoggerModule } from 'nestjs-pino';
+import { AppConfigService } from './config/app/config.service';
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      envFilePath: ['./env/.env.dev.local', './env/.env.dev'],
-      isGlobal: true,
-      ignoreEnvFile: process.env.NODE_ENV === 'prod',
-      validationSchema: Joi.object({
-        NODE_ENV: Joi.string().valid('dev', 'prod', 'test').required(),
-        DATABASE_HOST: Joi.string().required(),
-        DATABASE_USER: Joi.string().required(),
-        DATABASE_PASSWORD: Joi.string().required(),
-        DATABASE_DB: Joi.string().required(),
-        DATABASE_PORT: Joi.number().required(),
-      }),
-    }),
-    Neo4jModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService): Neo4jConfig => {
+    ConfigModule.forRoot({ isGlobal: true }),
+    AppConfigModule,
+    Neo4jDatabaseProviderModule,
+    ProblemsModule,
+    LoggerModule.forRootAsync({
+      imports: [AppConfigModule],
+      inject: [AppConfigService],
+      useFactory: (appConfigService: AppConfigService) => {
         return {
-          scheme: configService.get('DATABASE_SCHEME'),
-          host: configService.get('DATABASE_HOST'),
-          port: configService.get('DATABASE_PORT'),
-          username: configService.get('DATABASE_USER'),
-          password: configService.get('DATABASE_PASSWORD'),
-          database: configService.get('DATABASE_DB'),
+          pinoHttp: {
+            prettyPrint: appConfigService.prettyLogPrint
+              ? {
+                  translateTime: 'mm/dd/yyyy, h:MM:ss TT Z',
+                  colorize: true,
+                  levelFirst: true,
+                }
+              : {
+                  translateTime: 'mm/dd/yyyy, h:MM:ss TT Z',
+                  singleLine: true,
+                },
+            level: appConfigService.node === 'dev' ? 'debug' : 'info',
+          },
         };
       },
     }),
-    ProblemsModule,
   ],
   controllers: [],
   providers: [],
