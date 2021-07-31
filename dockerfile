@@ -8,6 +8,7 @@ EXPOSE 5002
 RUN npm install -g pm2
 RUN apk --no-cache add curl
 
+ADD problems /app/problems
 ADD ecosystem.config.js /app/ecosystem.config.js
 ADD tsconfig.json /app/tsconfig.json
 ADD tsconfig.build.json /app/tsconfig.build.json

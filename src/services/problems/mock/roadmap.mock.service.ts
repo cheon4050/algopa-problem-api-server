@@ -16,7 +16,7 @@ export class RoadmapMockService {
       edges: [],
     };
     const problems = fs
-      .readFileSync(join(__dirname, '../../../problems'), 'utf-8')
+      .readFileSync(join(__dirname, '../../../../problems'), 'utf-8')
       .split('\n');
 
     let currentCategoryNodeId = '';

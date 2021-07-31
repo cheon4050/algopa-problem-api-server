@@ -6,7 +6,7 @@ import { join } from 'path';
 export class RecommendationMockService {
   getRandomProblems(limit = 20) {
     const problems = fs
-      .readFileSync(join(__dirname, '../../../problems'), 'utf-8')
+      .readFileSync(join(__dirname, '../../../../problems'), 'utf-8')
       .split('\n')
       .filter((p) => p.split(':').length > 1);
 
