@@ -4,6 +4,7 @@ import { MockRoadMapType } from './mock/roadmap.mock.type';
 import { RoadmapMockService } from './mock/roadmap.mock.service';
 import { RecommendationMockType } from './mock/recommendation.mock.type';
 import { RecommendationMockService } from './mock/recommendation.mock.service';
+import { IUserRequest } from './interfaces/request/user-request.interface';
 
 @Injectable()
 export class ProblemsService {
@@ -13,13 +14,13 @@ export class ProblemsService {
     private readonly recommendationMockService: RecommendationMockService,
   ) {}
 
-  async getRoadMap(userId?: number): Promise<MockRoadMapType> {
+  async getRoadMap(user?: IUserRequest): Promise<MockRoadMapType> {
     return this.roadmapMockService.createRoadMapMockData();
   }
 
   async recommendProblem(
     { limit, type },
-    userId?: number,
+    user?: IUserRequest,
   ): Promise<RecommendationMockType[]> {
     return this.recommendationMockService.getRandomProblems(limit ? limit : 20);
   }

@@ -1,11 +1,13 @@
-import { Controller, Query } from '@nestjs/common';
+import { Controller, Header, Query } from '@nestjs/common';
 import { ProblemsService } from './problems.service';
 import { VersionGet } from '../common/decorators/version-get.decorator';
-import { UserId } from '../common/decorators/user-id.decorator';
 import { MockRoadMapType } from './mock/roadmap.mock.type';
 import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
 import { RecommendationMockType } from './mock/recommendation.mock.type';
 import { RecommendationLimitValidatePipe } from './pipes/recommendation.limit.validate.pipe';
+import { IResponse } from 'src/common/interfaces/response.interface';
+import { IUserRequest } from './interfaces/request/user-request.interface';
+import { User } from 'src/common/decorators/user.decorator';
 
 @Controller('problems')
 export class ProblemsController {
@@ -13,30 +15,40 @@ export class ProblemsController {
 
   @VersionGet({ path: 'roadmap', version: 'v1' })
   async getRoadMap(
-    @UserId(false) userId: number | null,
-  ): Promise<MockRoadMapType> {
-    if (userId) {
-      return await this.problemsService.getRoadMap(userId);
+    @User() user: IUserRequest | null,
+  ): Promise<IResponse<MockRoadMapType>> {
+    if (user) {
+      return {
+        success: true,
+        result: await this.problemsService.getRoadMap(user),
+      };
     } else {
       // default
-      return await this.problemsService.getRoadMap();
+
+      return { success: true, result: await this.problemsService.getRoadMap() };
     }
   }
 
   @VersionGet({ path: 'recommendation', version: 'v1' })
   async recommendProblem(
-    @UserId(false) userId: number | null,
+    @User() user: IUserRequest,
     @Query('limit', RecommendationLimitValidatePipe) limit: number,
     @Query('type', RecommendationTypeValidatePipe) type: string,
-  ): Promise<RecommendationMockType[]> {
-    if (userId) {
-      return await this.problemsService.recommendProblem(
-        { limit, type },
-        userId,
-      );
+  ): Promise<IResponse<RecommendationMockType[]>> {
+    if (user) {
+      return {
+        success: true,
+        result: await this.problemsService.recommendProblem(
+          { limit, type },
+          user,
+        ),
+      };
     } else {
       // default
-      return await this.problemsService.recommendProblem({ limit, type });
+      return {
+        success: true,
+        result: await this.problemsService.recommendProblem({ limit, type }),
+      };
     }
   }
 }
