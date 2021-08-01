@@ -9,7 +9,7 @@ export class ProblemNode implements IProblemNode {
   level: IntegerType;
   link: string;
 
-  tryCount?: IntegerType;
+  tryCount?: number;
   date?: DateType;
 
   constructor(problem: IProblemNode);
@@ -38,8 +38,8 @@ export class ProblemNode implements IProblemNode {
       level: level.low,
       link,
     };
-    if (tryCount && date) {
-      responseObject.tryCount = tryCount.low;
+    if (tryCount !== undefined && date) {
+      responseObject.tryCount = tryCount;
       responseObject.date = `${date.year.low}-${date.month.low}-${date.day.low}`;
     }
     if (include) {

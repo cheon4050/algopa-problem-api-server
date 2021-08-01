@@ -16,11 +16,11 @@ export class CategoryNode implements ICategoryNode {
       name,
     };
 
-    if (failureRate) {
+    if (failureRate !== undefined) {
       responseObject.failureRate = failureRate;
     }
 
-    if (progressRate) {
+    if (progressRate !== undefined) {
       responseObject.progressRate = progressRate;
     }
 

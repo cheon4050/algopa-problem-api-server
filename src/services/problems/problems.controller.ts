@@ -21,7 +21,9 @@ export class ProblemsController {
   ): Promise<IResponse<IRoadMapResponse>> {
     return {
       success: true,
-      result: await this.problemsService.getRoadMap(user),
+      result: user
+        ? await this.problemsService.getRoadMap(user)
+        : await this.problemsService.getDefaultRoadmap(),
     };
   }
 
@@ -82,7 +84,6 @@ export class ProblemsController {
   async createSolvedRelations(
     @Body() solvedProblemsData: ICreateSolvedRelations,
   ) {
-    console.log(solvedProblemsData);
     return {
       success: true,
       result: await this.problemsService.createSolvedRelations(

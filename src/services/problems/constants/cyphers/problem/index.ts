@@ -17,5 +17,5 @@ export const GET_NOT_SOLVED_PROBLEMS = `
 
 export const CREATE_SOLVED_RELATION = `
     match(p:Problem {id: $problemId}), (u:User {email: $email, provider: $provider})
-    merge (u)-[:Solved {try: $attemptCount, date: $time}]->(p)
+    merge (u)-[:Solved {try: $attemptCount, date: date($time)}]->(p)
 `;

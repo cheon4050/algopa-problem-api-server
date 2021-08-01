@@ -23,6 +23,6 @@ export interface IProblemNode {
 }
 
 export interface IHistory {
-  try: IntegerType;
+  try: number;
   date: DateType;
 }
