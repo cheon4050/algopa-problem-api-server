@@ -21,6 +21,7 @@ import { IErrorMessage } from 'src/common/interfaces/error-message-interface';
 import {
   GET_RECENT_SOLVED_PROBLEMS,
   RECOMMEND_DEFAULT_PROBLEM,
+  RECOMMEND_FIRST_PROBLEM,
   RECOMMEND_LESS_PROBLEM,
   RECOMMEND_NEXT_PROBLEM,
   RECOMMEND_WRONG_PROBLEM,
@@ -98,7 +99,7 @@ export class ProblemsService {
       } else if (type === 'wrong') {
         recommendProblemNodes = await this.recommendWrongProblem(user, limit);
       } else {
-        recommendProblemNodes = await this.recommendDefaultProblem(limit);
+        recommendProblemNodes = await this.recommendFirstProblem(user, limit);
       }
     } else {
       recommendProblemNodes = await this.recommendDefaultProblem(limit);
@@ -174,5 +175,12 @@ export class ProblemsService {
       await this.neo4jService.read(RECOMMEND_WRONG_PROBLEM, user)
     ).records.map((record) => record['_fields'][0]);
     return wrongDatas.filter((data) => data.labels).slice(0, limit);
+  }
+
+  private async recommendFirstProblem(user, limit): Promise<INode[]> {
+    const firstDatas = (
+      await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, user)
+    ).records.map((record) => record['_fields'][0]);
+    return firstDatas.filter((data) => data.labels).slice(0, limit);
   }
 }
