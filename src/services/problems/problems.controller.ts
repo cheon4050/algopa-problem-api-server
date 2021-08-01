@@ -29,13 +29,22 @@ export class ProblemsController {
     @Query('limit', RecommendationLimitValidatePipe) limit: number,
     @Query('type', RecommendationTypeValidatePipe) type: string,
   ): Promise<IResponse<IProblemResponse[]>> {
-    console.log(user);
     return {
       success: true,
       result: await this.problemsService.recommendProblem(
         { limit, type },
         user,
       ),
+    };
+  }
+
+  @VersionGet({ path: 'history', version: 'v1' })
+  async getUserHistory(
+    @User() user: IUserRequest,
+  ): Promise<IResponse<IProblemResponse[]>> {
+    return {
+      success: true,
+      result: await this.problemsService.getUserHistory(user),
     };
   }
 }

@@ -5,4 +5,6 @@ export interface IProblemResponse {
   link: string;
   title: string;
   isSolved?: boolean;
+  tryCount?: number;
+  date?: string;
 }

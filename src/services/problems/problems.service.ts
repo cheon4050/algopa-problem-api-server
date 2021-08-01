@@ -8,12 +8,14 @@ import {
   GET_DEFAULT_ROADMAP_CYPHER,
   GET_ROADMAP_CYPHER,
 } from './constants/cyphers/roadmap';
-import { INode } from './interfaces/node.interface';
+import {
+  ICategoryNode,
+  INode,
+  IProblemNode,
+} from './interfaces/node.interface';
 import { IEdge } from './interfaces/edge.interface';
 import { ProblemNode } from './entities/nodes/problem.node';
-import { IProblem } from './interfaces/problem.interface';
 import { CategoryNode } from './entities/nodes/category.node';
-import { ICategory } from './interfaces/category.interface';
 import { Edge } from './entities/edge/edge';
 import { IErrorMessage } from 'src/common/interfaces/error-message-interface';
 import {
@@ -24,6 +26,7 @@ import {
   RECOMMEND_WRONG_PROBLEM,
 } from './constants/cyphers/recommend';
 import { IProblemResponse } from './interfaces/response/problem-response.interface';
+import { GET_USER_HISTORY } from './constants/cyphers/history';
 
 @Injectable()
 export class ProblemsService {
@@ -62,7 +65,7 @@ export class ProblemsService {
     roadmap.problems = nodes
       .filter((node) => node.labels.includes('Problem'))
       .map((node) =>
-        new ProblemNode(node.properties as IProblem).toResponseObject(
+        new ProblemNode(node.properties as IProblemNode).toResponseObject(
           node.identity.low,
         ),
       );
@@ -70,7 +73,7 @@ export class ProblemsService {
     roadmap.categories = nodes
       .filter((node) => node.labels.includes('Category'))
       .map((node) =>
-        new CategoryNode(node.properties as ICategory).toResponseObject(
+        new CategoryNode(node.properties as ICategoryNode).toResponseObject(
           node.identity.low,
         ),
       );
@@ -101,10 +104,28 @@ export class ProblemsService {
     }
 
     return recommendProblemNodes.map((node) =>
-      new ProblemNode(node.properties as IProblem).toResponseObject(
+      new ProblemNode(node.properties as IProblemNode).toResponseObject(
         node.identity.low,
       ),
     );
+  }
+
+  async getUserHistory(user): Promise<IProblemResponse[]> {
+    return this.neo4jService
+      .read(GET_USER_HISTORY, user)
+      .then(({ records }) =>
+        records.map((record) => ({
+          node: record['_fields'][0],
+          relation: record['_fields'][1],
+        })),
+      )
+      .then((records) =>
+        records.map((data) =>
+          new ProblemNode(
+            Object.assign(data.node.properties, data.relation.properties),
+          ).toResponseObject(data.node.identity.low),
+        ),
+      );
   }
 
   private async recommendDefaultProblem(limit): Promise<INode[]> {

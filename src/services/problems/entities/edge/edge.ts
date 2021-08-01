@@ -5,7 +5,7 @@ import { IEdgeResponse } from 'src/services/problems/interfaces/response/edge-re
 export class Edge implements IEdge {
   start: IntegerType;
   end: IntegerType;
-  type: 'next' | 'in';
+  type: 'next' | 'in' | 'Solved';
 
   constructor({ start, end, type }: IEdge) {
     this.start = start;

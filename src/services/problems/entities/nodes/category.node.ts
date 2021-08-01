@@ -1,10 +1,10 @@
-import { ICategory } from '../../interfaces/category.interface';
+import { ICategoryNode } from '../../interfaces/node.interface';
 import { ICategoryResponse } from '../../interfaces/response/category-response.interface';
 
-export class CategoryNode implements ICategory {
+export class CategoryNode implements ICategoryNode {
   name: string;
 
-  constructor({ name }: ICategory) {
+  constructor({ name }: ICategoryNode) {
     this.name = name;
   }
 
