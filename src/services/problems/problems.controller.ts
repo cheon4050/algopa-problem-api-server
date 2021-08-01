@@ -1,4 +1,4 @@
-import { Controller, Query } from '@nestjs/common';
+import { Controller, Query, Version } from '@nestjs/common';
 import { ProblemsService } from './problems.service';
 import { VersionGet } from 'src/common/decorators/version-get.decorator';
 import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
@@ -53,6 +53,16 @@ export class ProblemsController {
     return {
       success: true,
       result: await this.problemsService.getAllProblems(),
+    };
+  }
+
+  @VersionGet({ path: 'solved', version: 'v1' })
+  async getUserSolvedProblems(
+    @User() user,
+  ): Promise<IResponse<IProblemResponse[]>> {
+    return {
+      success: true,
+      result: await this.problemsService.getUserSolvedProblems(user),
     };
   }
 }
