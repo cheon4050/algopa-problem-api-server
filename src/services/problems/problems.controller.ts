@@ -1,4 +1,4 @@
-import { Controller, Query, Version } from '@nestjs/common';
+import { Body, Controller, Query, Version } from '@nestjs/common';
 import { ProblemsService } from './problems.service';
 import { VersionGet } from 'src/common/decorators/version-get.decorator';
 import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
@@ -8,6 +8,8 @@ import { IUserRequest } from './interfaces/request/user-request.interface';
 import { User } from 'src/common/decorators/user.decorator';
 import { IRoadMapResponse } from './interfaces/roadmap.interface';
 import { IProblemResponse } from './interfaces/response/problem-response.interface';
+import { VersionPost } from 'src/common/decorators/version-post.decorator';
+import { ICreateSolvedRelations } from './interfaces/request/create-solved-relations-request.interface';
 
 @Controller('problems')
 export class ProblemsController {
@@ -73,6 +75,19 @@ export class ProblemsController {
     return {
       success: true,
       result: await this.problemsService.getUserNotSolvedProblems(user),
+    };
+  }
+
+  @VersionPost({ path: 'solved', version: 'v1' })
+  async createSolvedRelations(
+    @Body() solvedProblemsData: ICreateSolvedRelations,
+  ) {
+    console.log(solvedProblemsData);
+    return {
+      success: true,
+      result: await this.problemsService.createSolvedRelations(
+        solvedProblemsData,
+      ),
     };
   }
 }

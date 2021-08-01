@@ -29,10 +29,12 @@ import {
 import { IProblemResponse } from './interfaces/response/problem-response.interface';
 import { GET_USER_HISTORY } from './constants/cyphers/history';
 import {
+  CREATE_SOLVED_RELATION,
   GET_ALL_PROBLEMS,
   GET_NOT_SOLVED_PROBLEMS,
   GET_SOLVED_PROBMELS,
 } from './constants/cyphers/problem';
+import { ICreateSolvedRelations } from './interfaces/request/create-solved-relations-request.interface';
 
 @Injectable()
 export class ProblemsService {
@@ -170,6 +172,20 @@ export class ProblemsService {
           ),
         ),
       );
+  }
+
+  async createSolvedRelations(solvedProblemsData: ICreateSolvedRelations) {
+    const { email, provider, attempts } = solvedProblemsData;
+
+    await Promise.all(
+      attempts.map((attempt) =>
+        this.neo4jService.write(CREATE_SOLVED_RELATION, {
+          email,
+          provider,
+          ...attempt,
+        }),
+      ),
+    );
   }
 
   private async recommendDefaultProblem(limit): Promise<INode[]> {
