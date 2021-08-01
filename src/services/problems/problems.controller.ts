@@ -65,4 +65,14 @@ export class ProblemsController {
       result: await this.problemsService.getUserSolvedProblems(user),
     };
   }
+
+  @VersionGet({ path: 'notSolved', version: 'v1' })
+  async getUserNotSolvedProblems(
+    @User() user,
+  ): Promise<IResponse<IProblemResponse[]>> {
+    return {
+      success: true,
+      result: await this.problemsService.getUserNotSolvedProblems(user),
+    };
+  }
 }

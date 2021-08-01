@@ -30,6 +30,7 @@ import { IProblemResponse } from './interfaces/response/problem-response.interfa
 import { GET_USER_HISTORY } from './constants/cyphers/history';
 import {
   GET_ALL_PROBLEMS,
+  GET_NOT_SOLVED_PROBLEMS,
   GET_SOLVED_PROBMELS,
 } from './constants/cyphers/problem';
 
@@ -148,6 +149,20 @@ export class ProblemsService {
   async getUserSolvedProblems(user: IUserRequest): Promise<IProblemResponse[]> {
     return this.neo4jService
       .read(GET_SOLVED_PROBMELS, user)
+      .then(({ records }) =>
+        records.map((record) =>
+          new ProblemNode(record['_fields'][0].properties).toResponseObject(
+            record['_fields'][0].identity.low,
+          ),
+        ),
+      );
+  }
+
+  async getUserNotSolvedProblems(
+    user: IUserRequest,
+  ): Promise<IProblemResponse[]> {
+    return this.neo4jService
+      .read(GET_NOT_SOLVED_PROBLEMS, user)
       .then(({ records }) =>
         records.map((record) =>
           new ProblemNode(record['_fields'][0].properties).toResponseObject(
