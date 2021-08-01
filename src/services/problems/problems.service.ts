@@ -35,6 +35,7 @@ import {
   GET_SOLVED_PROBMELS,
 } from './constants/cyphers/problem';
 import { ICreateSolvedRelations } from './interfaces/request/create-solved-relations-request.interface';
+import { CREATE_USER, GET_ONE_USER, INIT_USER_SUCCESS } from './constants/user';
 
 @Injectable()
 export class ProblemsService {
@@ -98,7 +99,13 @@ export class ProblemsService {
     let recommendProblemNodes: INode[];
 
     if (user) {
-      if (type === 'next') {
+      if (
+        await this.neo4jService
+          .read(GET_ONE_USER, user)
+          .then(({ records }) => records[0]['_fields'][0].properties.isInit)
+      ) {
+        recommendProblemNodes = await this.recommendDefaultProblem(limit);
+      } else if (type === 'next') {
         recommendProblemNodes = await this.recommendNextProblem(user, limit);
       } else if (type == 'less') {
         recommendProblemNodes = await this.recommendLessProblem(user, limit);
@@ -176,7 +183,7 @@ export class ProblemsService {
 
   async createSolvedRelations(solvedProblemsData: ICreateSolvedRelations) {
     const { email, provider, attempts } = solvedProblemsData;
-
+    await this.neo4jService.write(CREATE_USER, { email, provider });
     await Promise.all(
       attempts.map((attempt) =>
         this.neo4jService.write(CREATE_SOLVED_RELATION, {
@@ -186,6 +193,7 @@ export class ProblemsService {
         }),
       ),
     );
+    await this.neo4jService.write(INIT_USER_SUCCESS, { email, provider });
   }
 
   private async recommendDefaultProblem(limit): Promise<INode[]> {
