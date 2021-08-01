@@ -2,3 +2,5 @@
 .idea
 **/env/
 scripts/
+**/dist/
+.DS_Store
