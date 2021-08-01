@@ -47,4 +47,12 @@ export class ProblemsController {
       result: await this.problemsService.getUserHistory(user),
     };
   }
+
+  @VersionGet({ path: 'all', version: 'v1' })
+  async getAllProblem(): Promise<IResponse<IProblemResponse[]>> {
+    return {
+      success: true,
+      result: await this.problemsService.getAllProblems(),
+    };
+  }
 }

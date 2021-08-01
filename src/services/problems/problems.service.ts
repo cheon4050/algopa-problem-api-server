@@ -27,6 +27,7 @@ import {
 } from './constants/cyphers/recommend';
 import { IProblemResponse } from './interfaces/response/problem-response.interface';
 import { GET_USER_HISTORY } from './constants/cyphers/history';
+import { GET_ALL_PROBLEMS } from './constants/cyphers/problem';
 
 @Injectable()
 export class ProblemsService {
@@ -124,6 +125,18 @@ export class ProblemsService {
           new ProblemNode(
             Object.assign(data.node.properties, data.relation.properties),
           ).toResponseObject(data.node.identity.low),
+        ),
+      );
+  }
+
+  async getAllProblems(): Promise<IProblemResponse[]> {
+    return this.neo4jService
+      .read(GET_ALL_PROBLEMS)
+      .then(({ records }) =>
+        records.map((record) =>
+          new ProblemNode(record['_fields'][0].properties).toResponseObject(
+            record['_fields'][0].identity.low,
+          ),
         ),
       );
   }
