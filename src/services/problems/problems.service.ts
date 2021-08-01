@@ -1,10 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import { Neo4jService } from 'nest-neo4j/dist';
-import { MockRoadMapType } from './mock/roadmap.mock.type';
 import { RoadmapMockService } from './mock/roadmap.mock.service';
-import { RecommendationMockType } from './mock/recommendation.mock.type';
 import { RecommendationMockService } from './mock/recommendation.mock.service';
 import { IUserRequest } from './interfaces/request/user-request.interface';
+import { IRoadMapResponse } from './interfaces/roadmap.interface';
+import {
+  GET_DEFAULT_ROADMAP_CYPHER,
+  GET_ROADMAP_CYPHER,
+} from './constants/cyphers/roadmap';
+import { INode } from './interfaces/node.interface';
+import { IEdge } from './interfaces/edge.interface';
+import { ProblemNode } from './entities/nodes/problem.node';
+import { IProblem } from './interfaces/problem.interface';
+import { CategoryNode } from './entities/nodes/category.node';
+import { ICategory } from './interfaces/category.interface';
+import { Edge } from './entities/edge/edge';
+import { IErrorMessage } from 'src/common/interfaces/error-message-interface';
+import {
+  GET_RECENT_SOLVED_PROBLEMS,
+  RECOMMEND_DEFAULT_PROBLEM,
+  RECOMMEND_LESS_PROBLEM,
+  RECOMMEND_NEXT_PROBLEM,
+  RECOMMEND_WRONG_PROBLEM,
+} from './constants/cyphers/recommend';
+import { IProblemResponse } from './interfaces/response/problem-response.interface';
 
 @Injectable()
 export class ProblemsService {
@@ -14,14 +33,112 @@ export class ProblemsService {
     private readonly recommendationMockService: RecommendationMockService,
   ) {}
 
-  async getRoadMap(user?: IUserRequest): Promise<MockRoadMapType> {
-    return this.roadmapMockService.createRoadMapMockData();
+  async getRoadMap(
+    user?: IUserRequest,
+  ): Promise<IRoadMapResponse | IErrorMessage> {
+    const roadmap: IRoadMapResponse = {
+      problems: [],
+      categories: [],
+      edges: [],
+    };
+    let datas;
+    try {
+      datas = (
+        await this.neo4jService.read(
+          user ? GET_ROADMAP_CYPHER : GET_DEFAULT_ROADMAP_CYPHER,
+          user ? user : {},
+        )
+      ).records.map((record) => record['_fields'][0]);
+    } catch (err) {
+      return {
+        code: 'FAILED_DATABASE_ERROR',
+        statusCode: 400,
+      };
+    }
+
+    const nodes: INode[] = datas.filter((data) => data.labels);
+    const edges: IEdge[] = datas.filter((data) => data.type);
+
+    roadmap.problems = nodes
+      .filter((node) => node.labels.includes('Problem'))
+      .map((node) =>
+        new ProblemNode(node.properties as IProblem).toResponseObject(
+          node.identity.low,
+        ),
+      );
+
+    roadmap.categories = nodes
+      .filter((node) => node.labels.includes('Category'))
+      .map((node) =>
+        new CategoryNode(node.properties as ICategory).toResponseObject(
+          node.identity.low,
+        ),
+      );
+
+    roadmap.edges = edges.map((edge) => new Edge(edge).toResponseObject());
+
+    return roadmap;
   }
 
   async recommendProblem(
     { limit, type },
     user?: IUserRequest,
-  ): Promise<RecommendationMockType[]> {
-    return this.recommendationMockService.getRandomProblems(limit ? limit : 20);
+  ): Promise<IProblemResponse[]> {
+    let recommendProblemNodes: INode[];
+
+    if (user) {
+      if (type === 'next') {
+        recommendProblemNodes = await this.recommendNextProblem(user, limit);
+      } else if (type == 'less') {
+        recommendProblemNodes = await this.recommendLessProblem(user, limit);
+      } else if (type === 'wrong') {
+        recommendProblemNodes = await this.recommendWrongProblem(user, limit);
+      } else {
+        recommendProblemNodes = await this.recommendDefaultProblem(limit);
+      }
+    } else {
+      recommendProblemNodes = await this.recommendDefaultProblem(limit);
+    }
+
+    return recommendProblemNodes.map((node) =>
+      new ProblemNode(node.properties as IProblem).toResponseObject(
+        node.identity.low,
+      ),
+    );
+  }
+
+  private async recommendDefaultProblem(limit): Promise<INode[]> {
+    const defaultDatas = (
+      await this.neo4jService.read(RECOMMEND_DEFAULT_PROBLEM)
+    ).records.map((record) => record['_fields'][0]);
+    return defaultDatas.filter((data) => data.labels).slice(0, limit);
+  }
+
+  private async recommendNextProblem(user, limit): Promise<INode[]> {
+    const RecentlySolvedProblemNumber = await this.neo4jService
+      .read(GET_RECENT_SOLVED_PROBLEMS, user)
+      .then(({ records }) => records[0]['_fields'][0].low);
+
+    const nextDatas = (
+      await this.neo4jService.read(RECOMMEND_NEXT_PROBLEM, {
+        ...user,
+        problem_number: RecentlySolvedProblemNumber,
+      })
+    ).records.map((record) => record['_fields'][0]);
+    return nextDatas.filter((data) => data.labels).slice(0, limit);
+  }
+
+  private async recommendLessProblem(user, limit): Promise<INode[]> {
+    const lessDatas = (
+      await this.neo4jService.read(RECOMMEND_LESS_PROBLEM, user)
+    ).records.map((record) => record['_fields'][0]);
+    return lessDatas.filter((data) => data.labels).slice(0, limit);
+  }
+
+  private async recommendWrongProblem(user, limit): Promise<INode[]> {
+    const wrongDatas = (
+      await this.neo4jService.read(RECOMMEND_WRONG_PROBLEM, user)
+    ).records.map((record) => record['_fields'][0]);
+    return wrongDatas.filter((data) => data.labels).slice(0, limit);
   }
 }
