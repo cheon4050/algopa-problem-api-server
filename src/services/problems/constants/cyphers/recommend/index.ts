@@ -7,21 +7,26 @@ export const RECOMMEND_DEFAULT_PROBLEM = `
 export const GET_RECENT_SOLVED_PROBLEMS = `
     match(u:User {email: $email, provider: $provider})-[r:Solved]->(p:Problem)
     return p.id
-    order by r.date desc limit 1
+    order by r.date desc limit 10
 `;
 
 export const RECOMMEND_FIRST_PROBLEM = `
-    match (p:Problem), (u:User {email: $email, provider: $provider})
-    where not (u)-[:solved]->(p)
+    match (c:Category)<-[:IN]-(p:Problem), (u:User {email: $email, provider: $provider})
+    where not (u)-[:Solved]->(p)
     return p
-    order by p.level
+    order by c.order
 `;
 
 export const RECOMMEND_NEXT_PROBLEM = `
     match (p:Problem {id: $problem_number})-[:IN]->(c:Category), (u:User {email: $email, provider: $provider})
     match (p1:Problem)-[:IN]->(c)
-    where p.level < p1.level and not (u)-[:Solved]->(p1)
-    return p1       
+    where p.level <= p1.level and not (u)-[:Solved]->(p1)
+    return p1 
+    union
+    match(p:Problem {id:$problem_number})-[:IN]->(c:Category),(c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
+    match(c1)<-[:IN]-(p2:Problem)
+    where not (u)-[:Solved]->(p2)
+    return p2 as p1
 `;
 
 export const RECOMMEND_LESS_PROBLEM = `

@@ -242,14 +242,28 @@ export class ProblemsService {
   }
 
   private async recommendNextProblem(user, limit): Promise<INode[]> {
-    const RecentlySolvedProblemNumber = await this.neo4jService
+    const RecentlySolvedProblemNumbers = await this.neo4jService
       .read(GET_RECENT_SOLVED_PROBLEMS, user)
-      .then(({ records }) => records[0]['_fields'][0].low);
-
+      .then(({ records }) => records);
+    if (RecentlySolvedProblemNumbers === []) {
+      return await this.recommendFirstProblem(user, limit);
+    }
+    const CYPHER = RecentlySolvedProblemNumbers.map(
+      (number) => `
+      match (p:Problem {id: ${number['_fields'][0].low}})-[:IN]->(c:Category), (u:User {email: $email, provider: $provider})
+      match (p1:Problem)-[:IN]->(c)
+      where p.level <= p1.level and not (u)-[:Solved]->(p1)
+      return p1 
+      union
+      match(p:Problem {id:${number['_fields'][0].low}})-[:IN]->(c:Category),(c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
+      match(c1)<-[:IN]-(p2:Problem)
+      where not (u)-[:Solved]->(p2)
+      return p2 as p1
+      `,
+    ).join(`\nunion \n`);
     const nextDatas = (
-      await this.neo4jService.read(RECOMMEND_NEXT_PROBLEM, {
+      await this.neo4jService.read(CYPHER, {
         ...user,
-        problem_number: RecentlySolvedProblemNumber,
       })
     ).records.map((record) => record['_fields'][0]);
     return nextDatas.filter((data) => data.labels).slice(0, limit);
