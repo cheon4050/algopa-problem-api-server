@@ -1,11 +1,11 @@
 export const GET_ROADMAP_PROBLEMS_CYPHER = `
     match (c:Category)<-[:IN]-(p:Problem), (u:User{email:$email, provider: $provider})
     where not (u)-[:Solved]->(p)
-    return p, true as solved, c
+    return p, false as solved, c
     union
     match (c:Category)<-[:IN]-(p:Problem), (u:User{email:$email, provider: $provider})
     where (u)-[:Solved]->(p)
-    return p, false as solved, c
+    return p, true as solved, c
 `;
 
 export const GET_ROADMAP_CATEGORIES_CYPHER = `
