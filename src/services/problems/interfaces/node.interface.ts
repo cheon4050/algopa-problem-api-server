@@ -27,3 +27,8 @@ export interface IHistory {
   try: number;
   date: DateType;
 }
+
+export interface IcategoryList{
+  name: string;
+}
+

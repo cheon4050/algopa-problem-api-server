@@ -29,6 +29,7 @@ export class ProblemNode implements IProblemNode {
     nodeId: number,
     isSolved = false,
     include?,
+    categories?,
   ): IProblemResponse {
     const { id, title, level, link, tryCount, date } = this;
     const responseObject: IProblemResponse = {
@@ -44,6 +45,9 @@ export class ProblemNode implements IProblemNode {
     }
     if (include) {
       responseObject.isSolved = isSolved;
+    }
+    if (categories){
+      responseObject.categories = categories
     }
 
     return responseObject;

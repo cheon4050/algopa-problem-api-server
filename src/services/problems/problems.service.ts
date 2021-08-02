@@ -8,7 +8,7 @@ import {
   GET_DEFAULT_ROADMAP_CYPHER,
   GET_ROADMAP_CATEGORIES_CYPHER,
   GET_ROADMAP_EDGES_CYPHER,
-  GET_ROADMAP_PRLBLEMS_CYPHER,
+  GET_ROADMAP_PROBLEMS_CYPHER,
 } from './constants/cyphers/roadmap';
 import {
   ICategoryNode,
@@ -89,15 +89,16 @@ export class ProblemsService {
     };
 
     const problemNodes: INode[] = await this.neo4jService
-      .read(GET_ROADMAP_PRLBLEMS_CYPHER, user)
+      .read(GET_ROADMAP_PROBLEMS_CYPHER, user)
       .then(({ records }) => records.map((record) => record['_fields']))
       .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
-
+    console.log(problemNodes[2][2].properties.name);
     roadmap.problems = problemNodes.map((node) =>
       new ProblemNode(node[0].properties).toResponseObject(
         node[0].identity.low,
         node[1],
         true,
+        [node[2].properties.name],
       ),
     );
 
@@ -139,13 +140,7 @@ export class ProblemsService {
     let recommendProblemNodes: INode[];
 
     if (user) {
-      if (
-        await this.neo4jService
-          .read(GET_ONE_USER, user)
-          .then(({ records }) => records[0]['_fields'][0].properties.isInit)
-      ) {
-        recommendProblemNodes = await this.recommendDefaultProblem(limit);
-      } else if (type === 'next') {
+      if (type === 'next') {
         recommendProblemNodes = await this.recommendNextProblem(user, limit);
       } else if (type == 'less') {
         recommendProblemNodes = await this.recommendLessProblem(user, limit);
@@ -224,18 +219,18 @@ export class ProblemsService {
   async createSolvedRelations(solvedProblemsData: ICreateSolvedRelations) {
     const { email, provider, attempts } = solvedProblemsData;
     await this.neo4jService.write(CREATE_USER, { email, provider });
-    await Promise.all(
-      attempts.map((attempt) =>
-        this.neo4jService.write(CREATE_SOLVED_RELATION, {
-          email,
-          provider,
-          ...attempt,
-        }),
-      ),
-    );
-    await this.neo4jService.write(INIT_USER_SUCCESS, { email, provider });
+    const CYPHER =
+      CREATE_SOLVED_RELATION +
+      attempts
+        .map(
+          (attempt) => `
+    match(p:Problem {id: ${attempt.problemId}})
+    merge (u)-[:Solved {try: ${attempt.attemptCount}, date: date("${attempt.time}")}]->(p)
+    `,
+        )
+        .join('\nwith u\n');
+    await this.neo4jService.write(CYPHER, { email, provider });
   }
-
   private async recommendDefaultProblem(limit): Promise<INode[]> {
     const defaultDatas = (
       await this.neo4jService.read(RECOMMEND_DEFAULT_PROBLEM)
