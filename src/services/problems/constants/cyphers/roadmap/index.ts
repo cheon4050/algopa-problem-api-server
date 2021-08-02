@@ -15,11 +15,11 @@ export const GET_ROADMAP_CATEGORIES_CYPHER = `
     with p1/tofloat(count(r)) as progress,c
     match(u:User {email: $email, provider: $provider})
     match(c:Category)<-[:IN]-(p:Problem)<-[r:Solved]-(u)
-    return toFloat(count(r))/sum(r.try) as correct,progress ,c
+    return 1-toFloat(count(r))/sum(r.try) as failureRate, progress ,c
     union
     match(c:Category)<-[:IN]-(p:Problem), (u:User {email: $email, provider: $provider})
     where not (c)<-[:IN]-(p)<-[:Solved]-(u)
-    return 0.0 as correct, 0.0 as progress, c
+    return 1.0 as failureRate, 0.0 as progress, c
 `;
 
 export const GET_ROADMAP_EDGES_CYPHER = `
