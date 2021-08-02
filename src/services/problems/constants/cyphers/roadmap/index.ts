@@ -30,10 +30,15 @@ export const GET_ROADMAP_EDGES_CYPHER = `
 
 export const GET_DEFAULT_ROADMAP_CYPHER = `
     match(p)
-    where labels(p)[0] = "Problem" or labels(p)[0] = "Category"
+    where labels(p)[0] = "Category"
     return p
     union 
     match ()-[r]->() 
     where type(r) = "next" or type(r) = "IN" 
     return r as p
+`;
+
+export const GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER = `
+    match (p:Problem)-[:IN]->(c:Category)
+    return p, c
 `;

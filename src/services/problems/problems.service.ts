@@ -9,6 +9,7 @@ import {
   GET_ROADMAP_CATEGORIES_CYPHER,
   GET_ROADMAP_EDGES_CYPHER,
   GET_ROADMAP_PROBLEMS_CYPHER,
+  GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
 } from './constants/cyphers/roadmap';
 import {
   ICategoryNode,
@@ -56,17 +57,20 @@ export class ProblemsService {
     const datas = await this.neo4jService
       .read(GET_DEFAULT_ROADMAP_CYPHER)
       .then(({ records }) => records.map((record) => record['_fields'][0]));
-
+    const problemNodes: INode[] = await this.neo4jService
+      .read(GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER)
+      .then(({ records }) => records.map((record) => record['_fields']))
+      .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
+    roadmap.problems = problemNodes.map((node) =>
+      new ProblemNode(node[0].properties).toResponseObject(
+        node[0].identity.low,
+        false,
+        false,
+        [node[1].properties.name],
+      ),
+    );
     const nodes: INode[] = datas.filter((data) => data.labels);
     const edges: IEdge[] = datas.filter((data) => data.type);
-
-    roadmap.problems = nodes
-      .filter((node) => node.labels.includes('Problem'))
-      .map((node) =>
-        new ProblemNode(node.properties as IProblemNode).toResponseObject(
-          node.identity.low,
-        ),
-      );
 
     roadmap.categories = nodes
       .filter((node) => node.labels.includes('Category'))
@@ -92,7 +96,6 @@ export class ProblemsService {
       .read(GET_ROADMAP_PROBLEMS_CYPHER, user)
       .then(({ records }) => records.map((record) => record['_fields']))
       .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
-    console.log(problemNodes[2][2].properties.name);
     roadmap.problems = problemNodes.map((node) =>
       new ProblemNode(node[0].properties).toResponseObject(
         node[0].identity.low,
