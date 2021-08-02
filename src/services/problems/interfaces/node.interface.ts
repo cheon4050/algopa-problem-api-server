@@ -8,6 +8,7 @@ export interface INode {
 
 export interface ICategoryNode {
   name: string;
+  order: IntegerType;
 }
 
 export interface IUserNode {
