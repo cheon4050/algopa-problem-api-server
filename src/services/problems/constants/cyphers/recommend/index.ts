@@ -44,10 +44,10 @@ export const RECOMMEND_LESS_PROBLEM = `
 export const RECOMMEND_WRONG_PROBLEM = `
     match(u:User {email: $email, provider: $provider})
     match(c:Category)<-[:IN]-(p:Problem)<-[r:Solved]-(u)
-    with toFloat(count(r))/sum(r.try) as correct_percentage, c
+    with toFloat(count(r))/sum(r.try) as failureRate, c
     match (c)<-[:IN]-(p)
     match(u:User {email: $email, provider: $provider})
     where not (u)-[:Solved]->(p)
     return p
-    order by correct_percentage
+    order by failureRate
 `;
