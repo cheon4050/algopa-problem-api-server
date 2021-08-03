@@ -250,12 +250,14 @@ export class ProblemsService {
     }
     const CYPHER = RecentlySolvedProblemNumbers.map(
       (number) => `
-      match (p:Problem {id: ${number['_fields'][0].low}})-[:IN]->(c:Category), (u:User {email: $email, provider: $provider})
+      match (p:Problem {id: ${number['_fields'][0].low}})-[:IN]->(c:Category), 
+      (u:User {email: $email, provider: $provider})
       match (p1:Problem)-[:IN]->(c)
       where p.level <= p1.level and not (u)-[:Solved]->(p1)
       return p1 
       union
-      match(p:Problem {id:${number['_fields'][0].low}})-[:IN]->(c:Category),(c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
+      match(p:Problem {id:${number['_fields'][0].low}})-[:IN]->(c:Category),
+      (c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
       match(c1)<-[:IN]-(p2:Problem)
       where not (u)-[:Solved]->(p2)
       return p2 as p1

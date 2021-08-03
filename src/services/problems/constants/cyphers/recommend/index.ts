@@ -31,14 +31,22 @@ export const RECOMMEND_NEXT_PROBLEM = `
 
 export const RECOMMEND_LESS_PROBLEM = `
     match(c:Category)<-[r:IN]-(p:Problem)<-[:Solved]-(u:User {email: $email, provider: $provider}) 
+    with collect(c.name) as name
+    match(c1:Category)
+    where not c1.name in name
+    match(c1)<-[:IN]-(p:Problem)
+    return p
+    order by c1.order
+    union
+    match(c:Category)<-[r:IN]-(p:Problem)<-[:Solved]-(u:User {email: $email, provider: $provider}) 
     with count(p) as p1, c
     match(c)<-[r:IN]-(p)
     with p1/tofloat(count(r)) as progress, c
     match (c)<-[:IN]-(p)
-    match(u:User {email: $email, provider: $provider})
+    match(u:User {email: $email, provider: $provider}) 
     where not (u)-[:Solved]->(p)
     return p
-    order by progress
+    order by progress, c.order
 `;
 
 export const RECOMMEND_WRONG_PROBLEM = `
