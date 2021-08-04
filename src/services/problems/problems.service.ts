@@ -245,9 +245,10 @@ export class ProblemsService {
     const RecentlySolvedProblemNumbers = await this.neo4jService
       .read(GET_RECENT_SOLVED_PROBLEMS, user)
       .then(({ records }) => records);
-    if (RecentlySolvedProblemNumbers === []) {
+    if (RecentlySolvedProblemNumbers.length == 0) {
       return await this.recommendFirstProblem(user, limit);
     }
+
     const CYPHER = RecentlySolvedProblemNumbers.map(
       (number) => `
       match (p:Problem {id: ${number['_fields'][0].low}})-[:IN]->(c:Category), 
