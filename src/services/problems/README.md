@@ -1,9 +1,8 @@
 # 목차
 
-1. [Social Login](#Social-Login)
-2. [Get a social account email](#Get-a-social-account-email)
-3. [Verificate a token](#Verificate-a-token)
-4. [Sign-a-token](#Sign-a-token)
+1. [Get Roadmap](#Get Roadmap)
+2. [Get Recommendations Problems](#Get Recommendations Problems)
+3. [Get User History](#Get User History)
 
 > 본 기능에서는 모든 response의 실제 상태 값은 정상 값(200 or 201)로 통일된다.
 >
@@ -13,11 +12,11 @@
 >
 > 아래에서 설명하는 모든 Response와  Error 객체는 `result`에 담기는 값을 뜻한다.
 
-# Social Login
+# Get Roadmap
 
-Social Login을 위한 기능입니다.
+Roadmap 데이터를 가져오는 기능입니다.
 
-### URL: `auth/v1/login/:provider`
+### URL: `problems/v1/roadmap`
 
 ### Method: `GET`
 
@@ -25,11 +24,14 @@ Social Login을 위한 기능입니다.
 
 - Authorization: 소셜 제공 업자<small>provider</small>에게서 얻은 Auth Code
 
+### Authorization이 없는 경우
+
 ### Parameters
 
 | Name     | Type   | Description                                      |
 | -------- | ------ | ------------------------------------------------ |
 | provider | string | 소셜 로그인 시 선택한 값, google, GitHub 중 하나 |
+
 
 ### Response
 
