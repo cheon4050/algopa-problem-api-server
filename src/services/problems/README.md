@@ -127,10 +127,7 @@ Roadmap 데이터를 가져오는 기능입니다.
         },
     ]
 }
-
 ```
-
-
 
 # Get Recommendations Problems
 
@@ -198,21 +195,6 @@ Roadmap 데이터를 가져오는 기능입니다.
     }
 ]
 ```
-
-### Error
-
-1. 401: `Unauthorized`
-
-   - type을 보냈지만 Access Token이 없는 경우 발생한다.
-
-     **Example**
-
-     ```json
-     {
-		"message" : "Access by users who are not logged in.",
-        "code" : "UNAUTHORIZED_USER"
-     }
-     ```
 
 
 # Get User History
@@ -299,20 +281,3 @@ Roadmap 데이터를 가져오는 기능입니다.
     },
 ]
 ```
-
-### Error
-
-1. 401: `Unauthorized`
-
-   - Authorization이 없으면 발생한다.
-
-     **Example**
-
-     ```json
-     {
-        "code" : "UNAUTHORIZED_USER"
-     }
-     ```
-    
-
-
