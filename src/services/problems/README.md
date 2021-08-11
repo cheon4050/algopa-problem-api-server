@@ -20,12 +20,6 @@ Roadmap 데이터를 가져오는 기능입니다.
 
 ### Method: `GET`
 
-### Headers
-
-- Authorization: 로그인 or 회원가입 시 발급된 JWT 토큰 스트링
-
-  > Authorization이 없는 경우 **default roadmap** 데이터가 전송된다.
-
 ### Query Parameters
 
 | Name     | Type   | Description                                      |
@@ -50,7 +44,7 @@ Roadmap 데이터를 가져오는 기능입니다.
 | title      | string   | true     | 문제 제목                   |
 | level      | int      | true     | 문제 난이도                 |
 | link       | string   | true     | 문제 링크                   |
-| isSolved   | boolean  | true     | 문제 풀이 여부              |
+| isSolved   | boolean  | false    | 문제 풀이 여부              |
 | categories | string[] | true     | 문제가 속한 카테고리들 이름 |
 
 #### Category Object
@@ -59,8 +53,8 @@ Roadmap 데이터를 가져오는 기능입니다.
 | ------------ | ------ | -------- | --------------------------- |
 | nodeId       | int    | true     | 카테고리 노드의 고유 ID     |
 | name         | string | true     | 카테고리 이름               |
-| failureRate  | float  | true     | 유저의 해당 카테고리 오답률 |
-| progressRate | float  | true     | 유저의 해당 카테고리 진행률 |
+| failureRate  | float  | false    | 유저의 해당 카테고리 오답률 |
+| progressRate | float  | false    | 유저의 해당 카테고리 진행률 |
 
 #### Edge Object
 
@@ -136,61 +130,6 @@ Roadmap 데이터를 가져오는 기능입니다.
 
 ```
 
-##### Default Roadmap
-```json
-{
-    "problems": [
-        {
-            "nodeId": 26,
-            "number": 2748,
-            "level": 5,
-            "link": "https://www.acmicpc.net/problem/2748",
-            "title": "피보나치 수 2",
-            "categories": ["DP"]
-        },
-        {
-            "nodeId": 27,
-            "number": 14501,
-            "level": 7,
-            "link": "https://www.acmicpc.net/problem/14501",
-            "title": "퇴사",
-            "categories": ["DP"]
-        },
-    ]
-    "categories": [
-        {
-            "nodeId": 12,
-            "name": "트리",
-        },
-        {
-            "nodeId": 7,
-            "name": "그리디",
-        },
-        {
-            "nodeId": 18,
-            "name": "최단경로",
-        },
-    ]
-    "edges": [
-        {
-            "from": 0,
-            "to": 5,
-            "type": "next"
-        },
-        {
-            "from": 1,
-            "to": 3,
-            "type": "next"
-        },
-        {
-            "from": 93,
-            "to": 21,
-            "type": "IN"
-        },
-    ]
-}
-
-```
 
 
 # Get Recommendations Problems
@@ -200,10 +139,6 @@ Roadmap 데이터를 가져오는 기능입니다.
 ### URL: `problems/v1/recommendation`
 
 ### Method: `GET`
-
-### Headers
-
-- Authorization: 로그인 or 회원가입 시 발급된 JWT 토큰 스트링
 
 ### Query Parameters
 
@@ -282,15 +217,11 @@ Roadmap 데이터를 가져오는 기능입니다.
 
 # Get User History
 
-유저 풀이이력을 가져오는 기능입니다.
+유저의 풀이이력을 가져오는 기능입니다.
 
 ### URL: `problems/v1/history`
 
 ### Method: `GET`
-
-### Headers
-
-- Authorization: 로그인 or 회원가입 시 발급된 JWT 토큰 스트링
 
 ### Query Parameters
 
@@ -311,7 +242,6 @@ Roadmap 데이터를 가져오는 기능입니다.
 | tryCount    | int      | true     | 문제 풀이 시도 횟수       |
 | date        | date     | true     | 문제 풀이 일시            |
 | categories  | string[] | true     | 문제가 속한 카테고리들 이름  |
-
 
 #### Example
 
