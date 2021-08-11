@@ -23,32 +23,161 @@ Roadmap 데이터를 가져오는 기능입니다.
 ### Headers
 
 - Authorization: 소셜 제공 업자<small>provider</small>에게서 얻은 Auth Code
+                email, provider 전달
 
 ### Authorization이 없는 경우
 
-### Parameters
+### Headers
 
 | Name     | Type   | Description                                      |
 | -------- | ------ | ------------------------------------------------ |
-| provider | string | 소셜 로그인 시 선택한 값, google, GitHub 중 하나 |
+|          |        |                   |
 
 
 ### Response
 
 | Name        | Type   | Required | Description                   |
 | ----------- | ------ | -------- | ----------------------------- |
-| email       | string | true     | 유저의 소셜 계정 이메일       |
-| accessToken | string | true     | 유저의 소셜 계정 Access Token |
+| problems    | Array  | true     | 로드맵 문제 정보       |
+| categories  | Array  | true     | 로드맵 카테고리 정보 |
+| edges       | Array  | true     | 로드맵 relationships 정보 |
+
 
 #### Example
 
 ```json
 {
-  "email": "whddk4415@gmail.com",
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IndoZGRrNDQxNUBnbWFpbC5jb20iLCJwcm92aWRlciI6Imdvb2dsZSIsImlhdCI6MTYyNjQ0MTQzOCwiZXhwIjoxNjI2NTI3ODM4fQ"
+    "problems": [
+        {
+            "nodeId": 26,
+            "number": 2748,
+            "level": 5,
+            "link": "https://www.acmicpc.net/problem/2748",
+            "title": "피보나치 수 2",
+            "categories": ["DP"]
+        },
+        {
+            "nodeId": 27,
+            "number": 14501,
+            "level": 7,
+            "link": "https://www.acmicpc.net/problem/14501",
+            "title": "퇴사",
+            "categories": ["DP"]
+        },
+    "categories": [
+        {
+            "nodeId": 12,
+            "name": "트리",
+        },
+        {
+            "nodeId": 7,
+            "name": "그리디",
+        },
+        {
+            "nodeId": 18,
+            "name": "최단경로",
+        },
+    "edges": [
+        {
+            "from": 0,
+            "to": 5,
+            "type": "next"
+        },
+        {
+            "from": 1,
+            "to": 3,
+            "type": "next"
+        },
+        {
+            "from": 93,
+            "to": 21,
+            "type": "IN"
+        },
+    ]
 }
 
 ```
+
+### Authorization이 있는 경우
+
+### Headers
+
+| Name     | Type   | Description                                      |
+| -------- | ------ | ------------------------------------------------ |
+| email    | string | 유저의 소셜 계정 이메일                     |
+| provider | string | 소셜 로그인 시 선택한 값, google, GitHub 중 하나 | 
+
+### Response
+
+| Name        | Type   | Required | Description                   |
+| ----------- | ------ | -------- | ----------------------------- |
+| problems    | Array  | true     | 로드맵 문제 정보       |
+| categories  | Array  | true     | 로드맵 카테고리 정보 |
+| edges       | Array  | true     | 로드맵 relationships 정보 |
+
+#### Example
+
+```json
+{
+    "problems": [
+        {
+            "nodeId": 26,
+            "number": 2748,
+            "level": 5,
+            "link": "https://www.acmicpc.net/problem/2748",
+            "title": "피보나치 수 2",
+            "isSolved": true
+            "categories": ["DP"]
+        },
+        {
+            "nodeId": 27,
+            "number": 14501,
+            "level": 7,
+            "link": "https://www.acmicpc.net/problem/14501",
+            "title": "퇴사",
+            "isSolved": true
+            "categories": ["DP"]
+        },
+    "categories": [
+        {
+            "nodeId": 12,
+            "name": "트리",
+            "failureRate": 0.125,
+            "progressRate": 0.3333333333333333
+        },
+        {
+            "nodeId": 7,
+            "name": "그리디",
+            "failureRate": 0.5,
+            "progressRate": 1
+        },
+        {
+            "nodeId": 18,
+            "name": "최단경로",
+            "failureRate": 0.21428571428571427,
+            "progressRate": 1
+        },
+    "edges": [
+        {
+            "from": 0,
+            "to": 5,
+            "type": "next"
+        },
+        {
+            "from": 1,
+            "to": 3,
+            "type": "next"
+        },
+        {
+            "from": 93,
+            "to": 21,
+            "type": "IN"
+        },
+    ]
+}
+
+```
+
 
 ### Error
 
@@ -79,38 +208,73 @@ Roadmap 데이터를 가져오는 기능입니다.
      ```
 
 
-# Get a social account email
+# Get Recommendations Problems
 
-유저에게 제공된 소셜 제공 업체<small>provider</small>의 Access Token을 이용하여 유저의 소셜 계정 이메일을 얻을 수 있는 기능입니다.
-
-### URL: `auth/v1/social/email/:provider`
+추천 타입에 맞는 문제 리스트들을 가져오는 기능입니다.
+### URL: `problems/v1/recommendation?type=[next, less, wrong]&limit=[default=20]`
 
 ### Method: `GET`
 
 ### Headers
 
 - Authorization: 소셜 제공 업자<small>provider</small>에게서 얻은 Auth Code
+                email, provider 전달
 
 ### Parameters
 
 | Name     | Type   | Description                                      |
 | -------- | ------ | ------------------------------------------------ |
-| provider | string | 소셜 로그인 시 선택한 값, google, GitHub 중 하나 |
+| type     | string | 추천 받을 타입 선택[next, less, wrong] |
+| limit    | string | 추천 받을 문제의 개수           |
 
 ### Response
 
 | Name        | Type   | Required | Description                   |
 | ----------- | ------ | -------- | ----------------------------- |
-| email       | string | true     | 유저의 소셜 계정 이메일       |
-| accessToken | string | true     | 유저의 소셜 계정 Access Token |
+| nodeId      | int    | true     | 문제 node의 고유 id       |
+| number      | int    | true     | 백준 문제의 고유 number    |
+| title       | string | true     | 문제의 제목          |
+| level       | number | true     | 문제의 난이도         |
+| link        | string | true     | 문제의 링크          |
+| categories  | Array  | true     | 문제 카테고리        |
 
 #### Example
 
 ```json
-{
-  "email": "whddk4415@gmail.com",
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IndoZGRrNDQxNUBnbWFpbC5jb20iLCJwcm92aWRlciI6Imdvb2dsZSIsImlhdCI6MTYyNjQ0MTQzOCwiZXhwIjoxNjI2NTI3ODM4fQ"
-}
+[
+    {
+        "nodeId": 31,
+        "number": 2753,
+        "level": 2,
+        "link": "https://www.acmicpc.net/problem/2753",
+        "title": "윤년",
+        "categories": ["구현"]
+    },
+    {
+        "nodeId": 37,
+        "number": 2231,
+        "level": 4,
+        "link": "https://www.acmicpc.net/problem/2231",
+        "title": "분해합",
+        "categories": ["완전 탐색"]
+    },
+    {
+        "nodeId": 38,
+        "number": 2798,
+        "level": 4,
+        "link": "https://www.acmicpc.net/problem/2798",
+        "title": "블랙잭",
+        "categories": ["완전 탐색"]
+    },
+    {
+        "nodeId": 26,
+        "number": 2748,
+        "level": 5,
+        "link": "https://www.acmicpc.net/problem/2748",
+        "title": "피보나치 수 2
+        "categories": ["DP"]
+    }
+]
 ```
 
 ### Error
@@ -214,9 +378,9 @@ JWT가 정상적인지 확인하는 기능입니다.
      }
      ```
 
-# Sign a token
+# Get User History
 
-제공된 데이터를 미리 정의한 JWT Secret Key값으로 Encode하는 기능입니다.
+User의 풀이이력을 가져오는 기능입니다.
 
 ### URL: `auth/v1/sign/token`
 
