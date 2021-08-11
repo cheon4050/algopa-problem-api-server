@@ -1,8 +1,8 @@
 # 목차
 
-1. [Get Roadmap](#Get Roadmap)
-2. [Get Recommendations Problems](#Get Recommendations Problems)
-3. [Get User History](#Get User History)
+1. [Get Roadmap](#Get-Roadmap)
+2. [Get Recommendations Problems](#Get-Recommendations-Problems)
+3. [Get User History](#Get-User-History)
 
 > 본 기능에서는 모든 response의 실제 상태 값은 정상 값(200 or 201)로 통일된다.
 >
@@ -271,7 +271,7 @@ Roadmap 데이터를 가져오는 기능입니다.
 
 # Get User History
 
-유저 풀이이력 가져오기
+유저 풀이이력을 가져오는 기능입니다.
 
 ### URL: `problems/v1/history`
 
