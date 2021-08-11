@@ -71,7 +71,7 @@ Software Maestro 12기 LIMO팀(이종아, 고동천, 박효진) 서비스 `algop
 
    algopa Roadmap 데이터를 가져오는 기능입니다.
 
-2. [**Get Recommendations Problems**](src/services/problems/README.md#Get-Recommendations-Problems): `GET /problems/v1/recommendation?type=[next, less, wrong]&limit=[default=20]`
+2. [**Get Recommendations Problems**](src/services/problems/README.md#Get-Recommendations-Problems): `GET /problems/v1/recommendation`
 
    추천 타입에 맞는 문제 리스트들을 가져오는 기능입니다.
 
