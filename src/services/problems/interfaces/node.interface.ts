@@ -8,6 +8,7 @@ export interface INode {
 
 export interface ICategoryNode {
   name: string;
+  order: IntegerType;
 }
 
 export interface IUserNode {
@@ -23,6 +24,11 @@ export interface IProblemNode {
 }
 
 export interface IHistory {
-  try: IntegerType;
+  try: number;
   date: DateType;
 }
+
+export interface IcategoryList{
+  name: string;
+}
+

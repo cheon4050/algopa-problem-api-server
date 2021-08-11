@@ -1,26 +1,30 @@
 import { ICategoryNode } from '../../interfaces/node.interface';
 import { ICategoryResponse } from '../../interfaces/response/category-response.interface';
+import { IntegerType } from '../../types/integer.type';
 
 export class CategoryNode implements ICategoryNode {
   name: string;
+  order: IntegerType;
 
-  constructor({ name }: ICategoryNode) {
-    this.name = name;
+  constructor(category: ICategoryNode) {
+    this.name = category.name;
+    this.order = category.order;
   }
 
   toResponseObject(nodeId, failureRate?, progressRate?): ICategoryResponse {
-    const { name } = this;
+    const { name, order } = this;
 
     const responseObject: ICategoryResponse = {
       nodeId,
       name,
+      order: order.low,
     };
 
-    if (failureRate) {
+    if (failureRate !== undefined) {
       responseObject.failureRate = failureRate;
     }
 
-    if (progressRate) {
+    if (progressRate !== undefined) {
       responseObject.progressRate = progressRate;
     }
 

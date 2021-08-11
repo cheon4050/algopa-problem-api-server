@@ -6,7 +6,10 @@ import { IUserRequest } from './interfaces/request/user-request.interface';
 import { IRoadMapResponse } from './interfaces/roadmap.interface';
 import {
   GET_DEFAULT_ROADMAP_CYPHER,
-  GET_ROADMAP_CYPHER,
+  GET_ROADMAP_CATEGORIES_CYPHER,
+  GET_ROADMAP_EDGES_CYPHER,
+  GET_ROADMAP_PROBLEMS_CYPHER,
+  GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
 } from './constants/cyphers/roadmap';
 import {
   ICategoryNode,
@@ -17,7 +20,6 @@ import { IEdge } from './interfaces/edge.interface';
 import { ProblemNode } from './entities/nodes/problem.node';
 import { CategoryNode } from './entities/nodes/category.node';
 import { Edge } from './entities/edge/edge';
-import { IErrorMessage } from 'src/common/interfaces/error-message-interface';
 import {
   GET_RECENT_SOLVED_PROBLEMS,
   RECOMMEND_DEFAULT_PROBLEM,
@@ -45,39 +47,30 @@ export class ProblemsService {
     private readonly recommendationMockService: RecommendationMockService,
   ) {}
 
-  async getRoadMap(
-    user?: IUserRequest,
-  ): Promise<IRoadMapResponse | IErrorMessage> {
+  async getDefaultRoadmap(): Promise<IRoadMapResponse> {
     const roadmap: IRoadMapResponse = {
       problems: [],
       categories: [],
       edges: [],
     };
-    let datas;
-    try {
-      datas = (
-        await this.neo4jService.read(
-          user ? GET_ROADMAP_CYPHER : GET_DEFAULT_ROADMAP_CYPHER,
-          user ? user : {},
-        )
-      ).records.map((record) => record['_fields'][0]);
-    } catch (err) {
-      return {
-        code: 'FAILED_DATABASE_ERROR',
-        statusCode: 400,
-      };
-    }
 
+    const datas = await this.neo4jService
+      .read(GET_DEFAULT_ROADMAP_CYPHER)
+      .then(({ records }) => records.map((record) => record['_fields'][0]));
+    const problemNodes: INode[] = await this.neo4jService
+      .read(GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER)
+      .then(({ records }) => records.map((record) => record['_fields']))
+      .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
+    roadmap.problems = problemNodes.map((node) =>
+      new ProblemNode(node[0].properties).toResponseObject(
+        node[0].identity.low,
+        false,
+        false,
+        [node[1].properties.name],
+      ),
+    );
     const nodes: INode[] = datas.filter((data) => data.labels);
     const edges: IEdge[] = datas.filter((data) => data.type);
-
-    roadmap.problems = nodes
-      .filter((node) => node.labels.includes('Problem'))
-      .map((node) =>
-        new ProblemNode(node.properties as IProblemNode).toResponseObject(
-          node.identity.low,
-        ),
-      );
 
     roadmap.categories = nodes
       .filter((node) => node.labels.includes('Category'))
@@ -92,6 +85,57 @@ export class ProblemsService {
     return roadmap;
   }
 
+  async getRoadMap(user: IUserRequest): Promise<IRoadMapResponse> {
+    const roadmap: IRoadMapResponse = {
+      problems: [],
+      categories: [],
+      edges: [],
+    };
+
+    const problemNodes: INode[] = await this.neo4jService
+      .read(GET_ROADMAP_PROBLEMS_CYPHER, user)
+      .then(({ records }) => records.map((record) => record['_fields']))
+      .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
+    roadmap.problems = problemNodes.map((node) =>
+      new ProblemNode(node[0].properties).toResponseObject(
+        node[0].identity.low,
+        node[1],
+        true,
+        [node[2].properties.name],
+      ),
+    );
+
+    const categoryNodes: INode[] = await this.neo4jService
+      .read(GET_ROADMAP_CATEGORIES_CYPHER, user)
+      .then(({ records }) => records.map((record) => record['_fields']))
+      .then((categoryDatas) => categoryDatas.filter((data) => data[2].labels));
+
+    roadmap.categories = categoryNodes.map((node) =>
+      new CategoryNode(node[2].properties).toResponseObject(
+        node[2].identity.low,
+        node[0],
+        node[1],
+      ),
+    );
+
+    roadmap.categories = roadmap.categories.filter((item, i) => {
+      return (
+        roadmap.categories.findIndex((item2, j) => {
+          return item.name === item2.name;
+        }) === i
+      );
+    });
+
+    const edges: IEdge[] = await this.neo4jService
+      .read(GET_ROADMAP_EDGES_CYPHER)
+      .then(({ records }) => records.map((record) => record['_fields'][0]))
+      .then((edgeDatas) => edgeDatas.filter((data) => data.type));
+
+    roadmap.edges = edges.map((edge) => new Edge(edge).toResponseObject());
+
+    return roadmap;
+  }
+
   async recommendProblem(
     { limit, type },
     user?: IUserRequest,
@@ -99,13 +143,7 @@ export class ProblemsService {
     let recommendProblemNodes: INode[];
 
     if (user) {
-      if (
-        await this.neo4jService
-          .read(GET_ONE_USER, user)
-          .then(({ records }) => records[0]['_fields'][0].properties.isInit)
-      ) {
-        recommendProblemNodes = await this.recommendDefaultProblem(limit);
-      } else if (type === 'next') {
+      if (type === 'next') {
         recommendProblemNodes = await this.recommendNextProblem(user, limit);
       } else if (type == 'less') {
         recommendProblemNodes = await this.recommendLessProblem(user, limit);
@@ -184,18 +222,18 @@ export class ProblemsService {
   async createSolvedRelations(solvedProblemsData: ICreateSolvedRelations) {
     const { email, provider, attempts } = solvedProblemsData;
     await this.neo4jService.write(CREATE_USER, { email, provider });
-    await Promise.all(
-      attempts.map((attempt) =>
-        this.neo4jService.write(CREATE_SOLVED_RELATION, {
-          email,
-          provider,
-          ...attempt,
-        }),
-      ),
-    );
-    await this.neo4jService.write(INIT_USER_SUCCESS, { email, provider });
+    const CYPHER =
+      CREATE_SOLVED_RELATION +
+      attempts
+        .map(
+          (attempt) => `
+    match(p:Problem {id: ${attempt.problemId}})
+    merge (u)-[:Solved {try: ${attempt.attemptCount}, date: date("${attempt.time}")}]->(p)
+    `,
+        )
+        .join('\nwith u\n');
+    await this.neo4jService.write(CYPHER, { email, provider });
   }
-
   private async recommendDefaultProblem(limit): Promise<INode[]> {
     const defaultDatas = (
       await this.neo4jService.read(RECOMMEND_DEFAULT_PROBLEM)
@@ -204,14 +242,31 @@ export class ProblemsService {
   }
 
   private async recommendNextProblem(user, limit): Promise<INode[]> {
-    const RecentlySolvedProblemNumber = await this.neo4jService
+    const RecentlySolvedProblemNumbers = await this.neo4jService
       .read(GET_RECENT_SOLVED_PROBLEMS, user)
-      .then(({ records }) => records[0]['_fields'][0].low);
+      .then(({ records }) => records);
+    if (RecentlySolvedProblemNumbers.length == 0) {
+      return await this.recommendFirstProblem(user, limit);
+    }
 
+    const CYPHER = RecentlySolvedProblemNumbers.map(
+      (number) => `
+      match (p:Problem {id: ${number['_fields'][0].low}})-[:IN]->(c:Category), 
+      (u:User {email: $email, provider: $provider})
+      match (p1:Problem)-[:IN]->(c)
+      where p.level <= p1.level and not (u)-[:Solved]->(p1)
+      return p1 
+      union
+      match(p:Problem {id:${number['_fields'][0].low}})-[:IN]->(c:Category),
+      (c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
+      match(c1)<-[:IN]-(p2:Problem)
+      where not (u)-[:Solved]->(p2)
+      return p2 as p1
+      `,
+    ).join(`\nunion \n`);
     const nextDatas = (
-      await this.neo4jService.read(RECOMMEND_NEXT_PROBLEM, {
+      await this.neo4jService.read(CYPHER, {
         ...user,
-        problem_number: RecentlySolvedProblemNumber,
       })
     ).records.map((record) => record['_fields'][0]);
     return nextDatas.filter((data) => data.labels).slice(0, limit);

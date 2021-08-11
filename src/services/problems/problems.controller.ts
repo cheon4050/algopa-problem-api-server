@@ -1,4 +1,4 @@
-import { Body, Controller, Query, Version } from '@nestjs/common';
+import { Body, Controller, Query} from '@nestjs/common';
 import { ProblemsService } from './problems.service';
 import { VersionGet } from 'src/common/decorators/version-get.decorator';
 import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
@@ -21,7 +21,9 @@ export class ProblemsController {
   ): Promise<IResponse<IRoadMapResponse>> {
     return {
       success: true,
-      result: await this.problemsService.getRoadMap(user),
+      result: user
+        ? await this.problemsService.getRoadMap(user)
+        : await this.problemsService.getDefaultRoadmap(),
     };
   }
 
@@ -82,7 +84,6 @@ export class ProblemsController {
   async createSolvedRelations(
     @Body() solvedProblemsData: ICreateSolvedRelations,
   ) {
-    console.log(solvedProblemsData);
     return {
       success: true,
       result: await this.problemsService.createSolvedRelations(

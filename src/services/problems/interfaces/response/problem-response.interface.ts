@@ -1,3 +1,5 @@
+import { IcategoryList } from '../node.interface';
+
 export interface IProblemResponse {
   nodeId: number;
   number: number;
@@ -7,4 +9,5 @@ export interface IProblemResponse {
   isSolved?: boolean;
   tryCount?: number;
   date?: string;
+  categories?: IcategoryList[];
 }
