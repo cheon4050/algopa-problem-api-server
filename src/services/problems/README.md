@@ -64,6 +64,7 @@ Roadmap 데이터를 가져오는 기능입니다.
             "title": "퇴사",
             "categories": ["DP"]
         },
+    ]
     "categories": [
         {
             "nodeId": 12,
@@ -77,6 +78,7 @@ Roadmap 데이터를 가져오는 기능입니다.
             "nodeId": 18,
             "name": "최단경로",
         },
+    ]
     "edges": [
         {
             "from": 0,
@@ -138,6 +140,7 @@ Roadmap 데이터를 가져오는 기능입니다.
             "isSolved": true
             "categories": ["DP"]
         },
+    ]
     "categories": [
         {
             "nodeId": 12,
@@ -157,6 +160,7 @@ Roadmap 데이터를 가져오는 기능입니다.
             "failureRate": 0.21428571428571427,
             "progressRate": 1
         },
+    ]
     "edges": [
         {
             "from": 0,
@@ -179,38 +183,10 @@ Roadmap 데이터를 가져오는 기능입니다.
 ```
 
 
-### Error
-
-1. 401: `Unauthorized`
-
-   - Authorization에 담긴 Code가 잘못된 경우 발생한다.
-
-     **Example**
-
-     ```json
-     {
-       "code": "INVALID_SOCIAL_TOKEN",
-       "statusCode": 401
-     }
-     ```
-
-2. 400: `Bad Request`
-
-   - 잘못된 provider가 온 경우 발생한다.
-
-     **Example**
-
-     ```json
-     {
-       "code": "INVALID_PROVIDER",
-       "statusCode": 400
-     }
-     ```
-
-
 # Get Recommendations Problems
 
 추천 타입에 맞는 문제 리스트들을 가져오는 기능입니다.
+
 ### URL: `problems/v1/recommendation?type=[next, less, wrong]&limit=[default=20]`
 
 ### Method: `GET`
@@ -271,7 +247,7 @@ Roadmap 데이터를 가져오는 기능입니다.
         "number": 2748,
         "level": 5,
         "link": "https://www.acmicpc.net/problem/2748",
-        "title": "피보나치 수 2
+        "title": "피보나치 수 2",
         "categories": ["DP"]
     }
 ]
@@ -281,130 +257,119 @@ Roadmap 데이터를 가져오는 기능입니다.
 
 1. 401: `Unauthorized`
 
-   - Authorization에 담긴 Code가 잘못된 경우 발생한다.
+   - type을 보냈지만 Access Token이 없는 경우 발생한다.
 
      **Example**
 
      ```json
      {
-       "code": "INVALID_SOCIAL_TOKEN",
-       "statusCode": 401
+		"message" : "Access by users who are not logged in.",
+        "code" : "UNAUTHORIZED_USER"
      }
      ```
 
-2. 400: `Bad Request`
 
-   - 잘못된 provider가 온 경우 발생한다.
+# Get User History
 
-     **Example**
+유저 풀이이력 가져오기
 
-     ```json
-     {
-       "code": "INVALID_PROVIDER",
-       "statusCode": 400
-     }
-     ```
+### URL: `problems/v1/history`
 
-# Verificate a token
+### Method: `GET`
 
-JWT가 정상적인지 확인하는 기능입니다.
+### Headers
 
-### URL: `auth/v1/verification/token`
+- Authorization: 소셜 제공 업자<small>provider</small>에게서 얻은 Auth Code
+                email, provider 전달
+### Headers
 
-### Method: `POST`
+| Name     | Type   | Description                                      |
+| -------- | ------ | ------------------------------------------------ |
+| email    | string | 유저의 소셜 계정 이메일                     |
+| provider | string | 소셜 로그인 시 선택한 값, google, GitHub 중 하나 | 
 
-### Request
+| Name        | Type   | Required | Description                   |
+| ----------- | ------ | -------- | ----------------------------- |
+| nodeId      | int    | true     | 문제 node의 고유 id       |
+| number      | int    | true     | 백준 문제의 고유 number    |
+| title       | string | true     | 문제의 제목          |
+| level       | number | true     | 문제의 난이도         |
+| link        | string | true     | 문제의 링크          |
+| tryCount    | int    | true     | 문제 풀이 시도 횟수   |
+| date        | date   | true     | 문제 풀이 일시        |
+| categories  | Array  | true     | 문제 카테고리        |
 
-| Name           | Type    | Required | Description                                  |
-| -------------- | ------- | -------- | -------------------------------------------- |
-| token          | string  | true     | 정상인지 확인하기 위한 JWT 토큰              |
-| isRefreshToken | boolean | false    | JWT가 Refresh Token인지 여부, default: false |
-
-### Response
-
-| Name     | Type   | Required | Description                                       |
-| -------- | ------ | -------- | ------------------------------------------------- |
-| email    | string | true     | 유저의 email                                      |
-| provider | string | true     | 유저 계정의 소셜 제공 업체, google, github중 하나 |
 
 #### Example
 
 ```json
-{
-  "email": "whddk4415@gmail.com",
-  "provider": "google"
-}
+[
+    {
+        "nodeId": 28,
+        "number": 2156,
+        "level": 10,
+        "link": "https://www.acmicpc.net/problem/2156",
+        "title": "포도주 시식",
+        "tryCount": 3,
+        "date": "2021-4-1",
+        "categories": ["DP"]
+    },
+    {
+        "nodeId": 62,
+        "number": 2263,
+        "level": 13,
+        "link": "https://www.acmicpc.net/problem/2263",
+        "title": "트리의 순회",
+        "tryCount": 8,
+        "date": "2021-3-18",
+        "categories": ["트리"]
+    },
+    {
+        "nodeId": 36,
+        "number": 11729,
+        "level": 9,
+        "link": "https://www.acmicpc.net/problem/11729",
+        "title": "하노이 탑 이동 순서",
+        "tryCount": 1,
+        "date": "2021-1-28",
+        "categories": ["재귀"]
+    },
+    {
+        "nodeId": 39,
+        "number": 2503,
+        "level": 6,
+        "link": "https://www.acmicpc.net/problem/2503",
+        "title": "숫자 야구",
+        "tryCount": 1,
+        "date": "2021-7-7",
+        "categories": ["완전 정복탐색"]
+    },
+    {
+        "nodeId": 76,
+        "number": 2667,
+        "level": 10,
+        "link": "https://www.acmicpc.net/problem/2667",
+        "title": "단지번호붙이기",
+        "tryCount": 2,
+        "date": "2021-2-4",
+        "categories": ["DFS"]
+    },
+]
 ```
 
 ### Error
 
-1. 400: `Bad Request`
+1. 401: `Unauthorized`
 
-   - JWT가 정의된 secret 키 값으로 디코딩이 되지 않는 경우 발생한다.
-
-     **Example**
-
-     ```json
-     {
-       "code": "INVALID_ACCESS_TOKEN",
-       "statusCode": 400
-     }
-     ```
-
-     ```json
-     {
-       "code": "INVALID_REFRESH_TOKEN",
-       "statusCode": 400
-     }
-     ```
-
-2. 401: `Unauthorized`
-
-   - JWT가 만료된 경우 발생한다.
+   - Authorization이 없으면 발생한다.
 
      **Example**
 
      ```json
      {
-       "code": "EXPIRED_ACCESS_TOKEN",
-       "statusCode": 401
+        "code" : "UNAUTHORIZED_USER"
      }
      ```
+    
 
-     ```json
-     {
-       "code": "EXPIRED_REFRESH_TOKEN",
-       "statusCode": 401
-     }
-     ```
-
-# Get User History
-
-User의 풀이이력을 가져오는 기능입니다.
-
-### URL: `auth/v1/sign/token`
-
-### Method: `POST`
-
-### Request
-
-| Name           | Type    | Required | Description                                       |
-| -------------- | ------- | -------- | ------------------------------------------------- |
-| email          | string  | true     | 유저의 이메일                                     |
-| provider       | string  | true     | 유저 계정의 소셜 제공 업체, google, github중 하나 |
-| isRefreshToken | boolean | false    | 변환할 JWT가 refresh token인지 여부               |
-
-### Response
-
-| Name  | Type   | Required | Description |
-| ----- | ------ | -------- | ----------- |
-| token | string | true     | 변환된 JWT  |
-
-#### Example
-
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IndoZGRrNDQxNUBnbWFpbC5jb20iLCJwcm92aWRlciI6Imdvb2dsZSIsImlhdCI6MTYyNjQ0MTQzOCwiZXhwIjoxNjI2NTI3ODM4fQ"
-}
-```
 
