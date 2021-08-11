@@ -33,7 +33,7 @@ Roadmap 데이터를 가져오는 기능입니다.
 | ---------- | -------- | -------- | -------------------------------- |
 | problems   | object[] | true     | 문제 정보를 담은 객체 리스트     |
 | categories | object[] | true     | 카테고리 정보를 담은 객체 리스트 |
-| edges      | object[] | True     | 연결 정보를 담은 객체 리스트     |
+| edges      | object[] | true     | 연결 정보를 담은 객체 리스트     |
 
 #### Problem Object
 
