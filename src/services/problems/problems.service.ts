@@ -71,7 +71,6 @@ export class ProblemsService {
     );
     const nodes: INode[] = datas.filter((data) => data[0].labels);
     const edges: IEdge[] = datas.filter((data) => data[0].type);
-    console.log(nodes[0][1]);
     roadmap.categories = nodes
       .filter((node) => node[0].labels.includes('Category'))
       .map((node) =>
@@ -80,9 +79,7 @@ export class ProblemsService {
           node[1].low,
         ),
       );
-    console.log(roadmap.categories);
     roadmap.edges = edges.map((edge) => new Edge(edge[0]).toResponseObject());
-    console.log(roadmap.edges);
     return roadmap;
   }
 
@@ -111,7 +108,6 @@ export class ProblemsService {
       .read(GET_ROADMAP_CATEGORIES_CYPHER, user)
       .then(({ records }) => records.map((record) => record['_fields']))
       .then((categoryDatas) => categoryDatas.filter((data) => data[2].labels));
-    console.log(categoryNodes);
     roadmap.categories = categoryNodes.map((node) =>
       new CategoryNode(node[2].properties).toResponseObject(
         node[2].identity.low,
@@ -121,7 +117,6 @@ export class ProblemsService {
         node[3].low,
       ),
     );
-    console.log(roadmap.categories);
     roadmap.categories = roadmap.categories.filter((item, i) => {
       return (
         roadmap.categories.findIndex((item2, j) => {
