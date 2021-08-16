@@ -56,7 +56,7 @@ export class ProblemsService {
 
     const datas = await this.neo4jService
       .read(GET_DEFAULT_ROADMAP_CYPHER)
-      .then(({ records }) => records.map((record) => record['_fields'][0]));
+      .then(({ records }) => records.map((record) => record['_fields']));
     const problemNodes: INode[] = await this.neo4jService
       .read(GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER)
       .then(({ records }) => records.map((record) => record['_fields']))
@@ -69,19 +69,20 @@ export class ProblemsService {
         [node[1].properties.name],
       ),
     );
-    const nodes: INode[] = datas.filter((data) => data.labels);
-    const edges: IEdge[] = datas.filter((data) => data.type);
-
+    const nodes: INode[] = datas.filter((data) => data[0].labels);
+    const edges: IEdge[] = datas.filter((data) => data[0].type);
+    console.log(nodes[0][1]);
     roadmap.categories = nodes
-      .filter((node) => node.labels.includes('Category'))
+      .filter((node) => node[0].labels.includes('Category'))
       .map((node) =>
-        new CategoryNode(node.properties as ICategoryNode).toResponseObject(
-          node.identity.low,
+        new CategoryNode(node[0].properties as ICategoryNode).toResponseObject(
+          node[0].identity.low,
+          node[1].low,
         ),
       );
-
-    roadmap.edges = edges.map((edge) => new Edge(edge).toResponseObject());
-
+    console.log(roadmap.categories);
+    roadmap.edges = edges.map((edge) => new Edge(edge[0]).toResponseObject());
+    console.log(roadmap.edges);
     return roadmap;
   }
 
@@ -96,6 +97,7 @@ export class ProblemsService {
       .read(GET_ROADMAP_PROBLEMS_CYPHER, user)
       .then(({ records }) => records.map((record) => record['_fields']))
       .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
+
     roadmap.problems = problemNodes.map((node) =>
       new ProblemNode(node[0].properties).toResponseObject(
         node[0].identity.low,
@@ -109,15 +111,17 @@ export class ProblemsService {
       .read(GET_ROADMAP_CATEGORIES_CYPHER, user)
       .then(({ records }) => records.map((record) => record['_fields']))
       .then((categoryDatas) => categoryDatas.filter((data) => data[2].labels));
-
+    console.log(categoryNodes);
     roadmap.categories = categoryNodes.map((node) =>
       new CategoryNode(node[2].properties).toResponseObject(
         node[2].identity.low,
+        node[4].low,
         node[0],
         node[1],
+        node[3].low,
       ),
     );
-
+    console.log(roadmap.categories);
     roadmap.categories = roadmap.categories.filter((item, i) => {
       return (
         roadmap.categories.findIndex((item2, j) => {

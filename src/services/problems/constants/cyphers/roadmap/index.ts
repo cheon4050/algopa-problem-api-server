@@ -15,11 +15,16 @@ export const GET_ROADMAP_CATEGORIES_CYPHER = `
     with p1/tofloat(count(r)) as progress,c
     match(u:User {email: $email, provider: $provider})
     match(c:Category)<-[:IN]-(p:Problem)<-[r:Solved]-(u)
-    return 1-toFloat(count(r))/sum(r.try) as failureRate, progress ,c
-    union
-    match(c:Category)<-[:IN]-(p:Problem), (u:User {email: $email, provider: $provider})
-    where not (c)<-[:IN]-(p)<-[:Solved]-(u)
-    return 1.0 as failureRate, 0.0 as progress, c
+    with 1-toFloat(count(r))/sum(r.try) as failureRate, progress ,c, count(c) as solvedCount, collect(c.name) as name
+    match(c1:Category)<-[:IN]-(p:Problem)
+    where c1.name in name
+    return failureRate, progress, c, solvedCount, count(p) as problemCount
+    union 
+    match(c:Category)<-[:IN]-(p:Problem)<-[:Solved]-(u:User {email: $email, provider: $provider}) 
+    with collect(c.name) as name
+    match(c:Category)<-[:IN]-(p:Problem)
+    where not c.name IN name
+    return 1.0 as failureRate, 0.0 as progress, c, 0 as solvedCount, count(c) as problemCount
 `;
 
 export const GET_ROADMAP_EDGES_CYPHER = `
@@ -29,16 +34,15 @@ export const GET_ROADMAP_EDGES_CYPHER = `
 `;
 
 export const GET_DEFAULT_ROADMAP_CYPHER = `
-    match(p)
-    where labels(p)[0] = "Category"
-    return p
+    match (c: Category) <-[:IN]-(p:Problem)
+    return c as p, count(p) as p1
     union 
     match ()-[r]->() 
     where type(r) = "next" or type(r) = "IN" 
-    return r as p
+    return r as p, 0 as p1
 `;
 
 export const GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER = `
     match (p:Problem)-[:IN]->(c:Category)
-    return p, c
+    return p, c, count(p)
 `;

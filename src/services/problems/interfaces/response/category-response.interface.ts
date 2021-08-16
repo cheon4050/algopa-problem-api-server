@@ -4,4 +4,6 @@ export interface ICategoryResponse {
   order: number;
   failureRate?: number;
   progressRate?: number;
+  problemCount: number;
+  solvedCount?: number;
 }

@@ -5,19 +5,25 @@ import { IntegerType } from '../../types/integer.type';
 export class CategoryNode implements ICategoryNode {
   name: string;
   order: IntegerType;
-
   constructor(category: ICategoryNode) {
     this.name = category.name;
     this.order = category.order;
   }
 
-  toResponseObject(nodeId, failureRate?, progressRate?): ICategoryResponse {
+  toResponseObject(
+    nodeId,
+    problemCount,
+    failureRate?,
+    progressRate?,
+    solvedCount?,
+  ): ICategoryResponse {
     const { name, order } = this;
 
     const responseObject: ICategoryResponse = {
       nodeId,
       name,
       order: order.low,
+      problemCount: problemCount,
     };
 
     if (failureRate !== undefined) {
@@ -26,6 +32,9 @@ export class CategoryNode implements ICategoryNode {
 
     if (progressRate !== undefined) {
       responseObject.progressRate = progressRate;
+    }
+    if (solvedCount !== undefined) {
+      responseObject.solvedCount = solvedCount;
     }
 
     return responseObject;
