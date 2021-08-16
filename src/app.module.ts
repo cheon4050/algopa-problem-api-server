@@ -16,6 +16,7 @@ import { ServiceModule } from './services/service.module';
       inject: [AppConfigService],
       useFactory: (appConfigService: AppConfigService) => {
         return {
+          exclude: ['develop/healthcheck', 'healthcheck'],
           pinoHttp: {
             prettyPrint: appConfigService.prettyLogPrint
               ? {
