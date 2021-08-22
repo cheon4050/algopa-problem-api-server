@@ -29,7 +29,9 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: appConfig.node === 'prod' ? appConfig.webDomain : '*',
+    origin: appConfig.webDomain,
+    preflightContinue: true,
+    optionsSuccessStatus: 200,
   });
 
   app.useGlobalInterceptors(new ErrorMessagesInterceptor(appConfig));
