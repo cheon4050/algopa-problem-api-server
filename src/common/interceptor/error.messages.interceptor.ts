@@ -28,7 +28,7 @@ export class ErrorMessagesInterceptor implements NestInterceptor {
               code: err.response.code,
             },
           });
-          if (this.appConfigService.node !== 'prod') {
+          if (this.appConfigService.node === 'develop') {
             err.response.message = ERROR_MESSAGES[err.response.code];
           }
           return throwError(() => err);
