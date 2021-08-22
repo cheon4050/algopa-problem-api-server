@@ -9,12 +9,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     ConfigModule.forRoot({
       load: [configuration],
       validationSchema: Joi.object({
-        DATABASE_SCHEME: Joi.string().default('neo4j+s'),
-        DATABASE_HOST: Joi.string().default('7dd6dae3.databases.neo4j.io'),
-        DATABASE_PORT: Joi.number().default(7687),
-        DATABASE_DB: Joi.string().default('neo4j'),
-        DATABASE_USER: Joi.string().default('neo4j'),
-        DATABASE_PASSWORD: Joi.string().default(
+        NEO4J_SCHEME: Joi.string().default('neo4j+s'),
+        NEO4J_HOST: Joi.string().default('7dd6dae3.databases.neo4j.io'),
+        NEO4J_PORT: Joi.number().default(7687),
+        NEO4J_DATABASE: Joi.string().default('neo4j'),
+        NEO4J_USERNAME: Joi.string().default('neo4j'),
+        NEO4J_PASSWORD: Joi.string().default(
           'avtU8vFsCvPS_x22TZEV4ky5kOfg0sf1hRjhZpDmNys',
         ),
       }),
