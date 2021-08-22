@@ -3,7 +3,7 @@ FROM node:14.17.3-alpine
 RUN mkdir -p /app
 WORKDIR /app
 
-EXPOSE 5002
+EXPOSE 5001
 
 RUN npm install -g pm2
 RUN apk --no-cache add curl
