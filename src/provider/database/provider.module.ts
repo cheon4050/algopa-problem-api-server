@@ -11,12 +11,12 @@ import { Neo4jConfigModule } from 'src/config/database/neo4j/config.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService): Neo4jConfig => {
         return {
-          scheme: configService.get('DATABASE_SCHEME'),
-          host: configService.get('DATABASE_HOST'),
-          port: configService.get('DATABASE_PORT'),
-          username: configService.get('DATABASE_USER'),
-          password: configService.get('DATABASE_PASSWORD'),
-          database: configService.get('DATABASE_DB'),
+          scheme: configService.get('NEO4J_SCHEME'),
+          host: configService.get('NEO4J_HOST'),
+          port: configService.get('NEO4J_PORT'),
+          username: configService.get('NEO4J_USERNAME'),
+          password: configService.get('NEO4J_PASSWORD'),
+          database: configService.get('NEO4J_DATABASE'),
         };
       },
     }),

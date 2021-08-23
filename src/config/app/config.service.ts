@@ -13,6 +13,10 @@ export class AppConfigService {
     return Number(this.configService.get<number>('app.port'));
   }
 
+  get webDomain(): string {
+    return this.configService.get<string>('app.webDomain');
+  }
+
   get prettyLogPrint(): boolean {
     return this.configService.get<string>('app.prettyLogPrint') === 'true';
   }

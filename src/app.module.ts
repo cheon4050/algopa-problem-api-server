@@ -4,13 +4,13 @@ import { AppConfigModule } from './config/app/config.module';
 import { Neo4jDatabaseProviderModule } from './provider/database/provider.module';
 import { LoggerModule } from 'nestjs-pino';
 import { AppConfigService } from './config/app/config.service';
-import { ServiceModule } from './services/service.module';
+import { ApiModule } from './module/api.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     AppConfigModule,
     Neo4jDatabaseProviderModule,
-    ServiceModule,
+    ApiModule,
     LoggerModule.forRootAsync({
       imports: [AppConfigModule],
       inject: [AppConfigService],
