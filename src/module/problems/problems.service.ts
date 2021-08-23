@@ -146,10 +146,12 @@ export class ProblemService {
     } else {
       recommendProblemNodes = await this.recommendDefaultProblem(limit);
     }
-
     return recommendProblemNodes.map((node) =>
-      new ProblemNode(node.properties as IProblemProperty).toResponseObject(
-        node.identity.low,
+      new ProblemNode(node[0].properties as IProblemProperty).toResponseObject(
+        node[0].identity.low,
+        false,
+        false,
+        [node[1].properties.name],
       ),
     );
   }
@@ -245,41 +247,41 @@ export class ProblemService {
       (u:User {email: $email, provider: $provider})
       match (p1:Problem)-[:IN]->(c)
       where p.level <= p1.level and not (u)-[:Solved]->(p1)
-      return p1
+      return p1, c
       union
       match(p:Problem {id:${number['_fields'][0].low}})-[:IN]->(c:Category),
       (c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
       match(c1)<-[:IN]-(p2:Problem)
       where not (u)-[:Solved]->(p2)
-      return p2 as p1
+      return p2 as p1, c
       `,
     ).join(`\nunion \n`);
     const nextDatas = (
       await this.neo4jService.read(CYPHER, {
         ...user,
       })
-    ).records.map((record) => record['_fields'][0]);
-    return nextDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return nextDatas.filter((data) => data[0].labels).slice(0, limit);
   }
 
   private async recommendLessProblem(user, limit): Promise<INode[]> {
     const lessDatas = (
       await this.neo4jService.read(RECOMMEND_LESS_PROBLEM, user)
-    ).records.map((record) => record['_fields'][0]);
-    return lessDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return lessDatas.filter((data) => data[0].labels).slice(0, limit);
   }
 
   private async recommendWrongProblem(user, limit): Promise<INode[]> {
     const wrongDatas = (
       await this.neo4jService.read(RECOMMEND_WRONG_PROBLEM, user)
-    ).records.map((record) => record['_fields'][0]);
-    return wrongDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return wrongDatas.filter((data) => data[0].labels).slice(0, limit);
   }
 
   private async recommendFirstProblem(user, limit): Promise<INode[]> {
     const firstDatas = (
       await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, user)
-    ).records.map((record) => record['_fields'][0]);
-    return firstDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return firstDatas.filter((data) => data[0].labels).slice(0, limit);
   }
 }
