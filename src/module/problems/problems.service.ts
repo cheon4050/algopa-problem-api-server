@@ -33,8 +33,14 @@ import {
   INode,
   IProblemProperty,
 } from './interfaces/node.interface';
-import { IProblem, ISolvedProblem } from './interfaces/problem.interface';
+import {
+  IProblem,
+  IProblemInfo,
+  ISolvedProblem,
+} from './interfaces/problem.interface';
 import { IRoadMap } from './interfaces/roadmap.interface';
+import axios from 'axios';
+import { load } from 'cheerio';
 
 @Injectable()
 export class ProblemService {
@@ -229,8 +235,8 @@ export class ProblemService {
   private async recommendDefaultProblem(limit): Promise<INode[]> {
     const defaultDatas = (
       await this.neo4jService.read(RECOMMEND_DEFAULT_PROBLEM)
-    ).records.map((record) => record['_fields'][0]);
-    return defaultDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return defaultDatas.filter((data) => data[0].labels).slice(0, limit);
   }
 
   private async recommendNextProblem(user, limit): Promise<INode[]> {
@@ -283,5 +289,43 @@ export class ProblemService {
       await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, user)
     ).records.map((record) => record['_fields']);
     return firstDatas.filter((data) => data[0].labels).slice(0, limit);
+  }
+  async getProblemInfo(id): Promise<IProblemInfo> {
+    const CYPHER = `
+    match(p:Problem{id: $id})-[:IN]->(c:Category)
+    return p, c
+    `;
+    const data = (
+      await this.neo4jService.read(CYPHER, {
+        id: id,
+      })
+    ).records.map((record) => record['_fields'])[0];
+    const problem: IProblemInfo = {
+      number: data[0].properties.id.low,
+      level: data[0].properties.level.low,
+      link: data[0].properties.link,
+      title: data[0].properties.title,
+      categories: [data[1].properties.name],
+      contentHTML: '',
+    };
+    const getHtml = async () => {
+      try {
+        return await axios.get(`https://www.acmicpc.net/problem/${id}`);
+      } catch (error) {}
+    };
+    const html = await getHtml()
+      .then((html) => {
+        const $ = load(html.data);
+        const $bodyList = $('body')
+          .children('div.wrapper')
+          .children('div.container.content');
+        return $bodyList.html();
+      })
+      .then((data) =>
+        data.replace(/\/category\//g, 'https://www.acmicpc.net/category/'),
+      );
+    problem.contentHTML =
+      '<div class="container content">' + html.toString() + '</div>';
+    return problem;
   }
 }

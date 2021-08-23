@@ -6,7 +6,14 @@ export interface IProblem {
   title: string;
   categories?: string[];
 }
-
+export interface IProblemInfo {
+  number: number;
+  level: number;
+  link: string;
+  title: string;
+  categories: string[];
+  contentHTML: string;
+}
 export interface ISolvedProblem extends IProblem {
   tryCount: number;
   date: string;

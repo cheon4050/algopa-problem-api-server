@@ -15,11 +15,14 @@ import { IJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { InitializeUserHistoryDto } from './dto/initial-user-history.dto';
 import { ProblemDto } from './dto/problem.dto';
 import { RoadmapDto } from './dto/roadmap.dto';
+import { ProblemInfoDto } from './dto/problemInfo.dto';
 import { SolvedProblemDto } from './dto/solved-problem.dto';
 import { ICreateSolvedRelations } from './interfaces/create-solved-relations-request.dto';
 import { RecommendationLimitValidatePipe } from './pipes/recommendation.limit.validate.pipe';
 import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
+import { ProblemInfoIdValidatePipe } from './pipes/problemInfo.id.validate.pipe';
 import { ProblemService } from './problems.service';
+import { IProblemInfo } from './interfaces/problem.interface';
 
 @Controller('problems')
 export class ProblemController {
@@ -61,6 +64,13 @@ export class ProblemController {
     const result = await this.problemService.getUserHistory(user);
 
     return result.map((problem) => new SolvedProblemDto(problem));
+  }
+  @VersionGet({ path: 'info', version: 'v1' })
+  async getProblemsInfo(
+    @Query('id', ProblemInfoIdValidatePipe) id: number,
+  ): Promise<ProblemInfoDto> {
+    const result = await this.problemService.getProblemInfo(id);
+    return result;
   }
 
   @VersionPost({ path: 'initial/history', version: 'v1' })
