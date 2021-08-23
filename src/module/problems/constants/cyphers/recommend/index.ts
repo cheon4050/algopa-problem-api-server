@@ -1,7 +1,7 @@
 export const RECOMMEND_DEFAULT_PROBLEM = `
-        match (p:Problem)
-        return p
-        order by p.level
+    match (c:Category)<-[:IN]-(p:Problem)
+    return p, c
+    order by p.level
 `;
 
 export const GET_RECENT_SOLVED_PROBLEMS = `
@@ -13,7 +13,7 @@ export const GET_RECENT_SOLVED_PROBLEMS = `
 export const RECOMMEND_FIRST_PROBLEM = `
     match (c:Category)<-[:IN]-(p:Problem), (u:User {email: $email, provider: $provider})
     where not (u)-[:Solved]->(p)
-    return p
+    return p, c
     order by c.order
 `;
 
@@ -35,7 +35,7 @@ export const RECOMMEND_LESS_PROBLEM = `
     match(c1:Category)
     where not c1.name in name
     match(c1)<-[:IN]-(p:Problem)
-    return p
+    return p, c1 as c
     order by c1.order
     union
     match(c:Category)<-[r:IN]-(p:Problem)<-[:Solved]-(u:User {email: $email, provider: $provider}) 
@@ -45,7 +45,7 @@ export const RECOMMEND_LESS_PROBLEM = `
     match (c)<-[:IN]-(p)
     match(u:User {email: $email, provider: $provider}) 
     where not (u)-[:Solved]->(p)
-    return p
+    return p, c
     order by progress, c.order
 `;
 
@@ -56,6 +56,6 @@ export const RECOMMEND_WRONG_PROBLEM = `
     match (c)<-[:IN]-(p)
     match(u:User {email: $email, provider: $provider})
     where not (u)-[:Solved]->(p)
-    return p
+    return p, c
     order by failureRate
 `;
