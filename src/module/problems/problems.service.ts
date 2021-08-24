@@ -328,4 +328,20 @@ export class ProblemService {
       '<div class="container content">' + html.toString() + '</div>';
     return problem;
   }
+  async checkProblem(id): Promise<boolean> {
+    const CYPHER = `
+    match(p:Problem{id: $id})
+    return p
+    `;
+    const checkData = (
+      await this.neo4jService.read(CYPHER, {
+        id: id,
+      })
+    ).records.map((record) => record);
+    if (checkData.length === 0) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
