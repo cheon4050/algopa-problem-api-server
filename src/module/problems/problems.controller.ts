@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Get,
   HttpException,
+  Param,
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -10,6 +12,7 @@ import { InjectAwsService } from 'nest-aws-sdk';
 import { UNAUTHORIZED_USER } from 'src/common/constant/error-code';
 import { User } from 'src/common/decorators/user.decorator';
 import { VersionGet } from 'src/common/decorators/version-get.decorator';
+import { problemInfoGet } from 'src/common/decorators/problemInfo.decorator';
 import { VersionPost } from 'src/common/decorators/version-post.decorator';
 import { IJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { InitializeUserHistoryDto } from './dto/initial-user-history.dto';
@@ -65,9 +68,9 @@ export class ProblemController {
 
     return result.map((problem) => new SolvedProblemDto(problem));
   }
-  @VersionGet({ path: 'info', version: 'v1' })
+  @problemInfoGet({ path: 'info', version: 'v1', id: ':id' })
   async getProblemsInfo(
-    @Query('id', ProblemInfoIdValidatePipe) id: number,
+    @Param('id', ProblemInfoIdValidatePipe) id: number,
   ): Promise<ProblemInfoDto> {
     const result = await this.problemService.getProblemInfo(id);
     return result;
