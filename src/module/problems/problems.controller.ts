@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -9,7 +10,10 @@ import {
 } from '@nestjs/common';
 import { Lambda } from 'aws-sdk';
 import { InjectAwsService } from 'nest-aws-sdk';
-import { UNAUTHORIZED_USER } from 'src/common/constant/error-code';
+import {
+  NOT_FOUND_PROBLEM_ID,
+  UNAUTHORIZED_USER,
+} from 'src/common/constant/error-code';
 import { User } from 'src/common/decorators/user.decorator';
 import { VersionGet } from 'src/common/decorators/version-get.decorator';
 import { VersionPost } from 'src/common/decorators/version-post.decorator';
@@ -71,6 +75,20 @@ export class ProblemController {
   async getProblemsInfo(
     @Param('id', ProblemInfoIdValidatePipe) id: number,
   ): Promise<ProblemInfoDto> {
+    // id가 ㅇ벗으면
+    // const check = await this.problemService.getProblemInfo(id);
+    // if (id == 0){
+    //   throw new BadRequestException({
+    //     code: NOT_FOUND_PROBLEM_ID
+    //   })
+    // }
+    const check = await this.problemService.checkProblem(id);
+    if (check) {
+      throw new BadRequestException({
+        statusCode: 404,
+        code: NOT_FOUND_PROBLEM_ID,
+      });
+    }
     const result = await this.problemService.getProblemInfo(id);
     return result;
   }

@@ -9,6 +9,7 @@ export const ERROR_MESSAGES = {
     'Only English, and numbers can be used for the nickname.',
   EXCEED_NICKNAME_LENGTH:
     'Your nickname has exceeded the maximum allowed length.',
+  NOT_FOUND_PROBLEM_ID: 'This ProblemId is not saved',
   INVALID_PROVIDER: 'Invalid provider.',
   DOES_NOT_EXIST_TOKEN: 'There is no token.',
   UNAUTHORIZED_USER: 'Access by users who are not logged in.',
