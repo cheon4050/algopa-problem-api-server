@@ -33,8 +33,14 @@ import {
   INode,
   IProblemProperty,
 } from './interfaces/node.interface';
-import { IProblem, ISolvedProblem } from './interfaces/problem.interface';
+import {
+  IProblem,
+  IProblemInfo,
+  ISolvedProblem,
+} from './interfaces/problem.interface';
 import { IRoadMap } from './interfaces/roadmap.interface';
+import axios from 'axios';
+import { load } from 'cheerio';
 
 @Injectable()
 export class ProblemService {
@@ -146,10 +152,12 @@ export class ProblemService {
     } else {
       recommendProblemNodes = await this.recommendDefaultProblem(limit);
     }
-
     return recommendProblemNodes.map((node) =>
-      new ProblemNode(node.properties as IProblemProperty).toResponseObject(
-        node.identity.low,
+      new ProblemNode(node[0].properties as IProblemProperty).toResponseObject(
+        node[0].identity.low,
+        false,
+        false,
+        [node[1].properties.name],
       ),
     );
   }
@@ -227,8 +235,8 @@ export class ProblemService {
   private async recommendDefaultProblem(limit): Promise<INode[]> {
     const defaultDatas = (
       await this.neo4jService.read(RECOMMEND_DEFAULT_PROBLEM)
-    ).records.map((record) => record['_fields'][0]);
-    return defaultDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return defaultDatas.filter((data) => data[0].labels).slice(0, limit);
   }
 
   private async recommendNextProblem(user, limit): Promise<INode[]> {
@@ -245,41 +253,79 @@ export class ProblemService {
       (u:User {email: $email, provider: $provider})
       match (p1:Problem)-[:IN]->(c)
       where p.level <= p1.level and not (u)-[:Solved]->(p1)
-      return p1
+      return p1, c
       union
       match(p:Problem {id:${number['_fields'][0].low}})-[:IN]->(c:Category),
       (c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
       match(c1)<-[:IN]-(p2:Problem)
       where not (u)-[:Solved]->(p2)
-      return p2 as p1
+      return p2 as p1, c
       `,
     ).join(`\nunion \n`);
     const nextDatas = (
       await this.neo4jService.read(CYPHER, {
         ...user,
       })
-    ).records.map((record) => record['_fields'][0]);
-    return nextDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return nextDatas.filter((data) => data[0].labels).slice(0, limit);
   }
 
   private async recommendLessProblem(user, limit): Promise<INode[]> {
     const lessDatas = (
       await this.neo4jService.read(RECOMMEND_LESS_PROBLEM, user)
-    ).records.map((record) => record['_fields'][0]);
-    return lessDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return lessDatas.filter((data) => data[0].labels).slice(0, limit);
   }
 
   private async recommendWrongProblem(user, limit): Promise<INode[]> {
     const wrongDatas = (
       await this.neo4jService.read(RECOMMEND_WRONG_PROBLEM, user)
-    ).records.map((record) => record['_fields'][0]);
-    return wrongDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return wrongDatas.filter((data) => data[0].labels).slice(0, limit);
   }
 
   private async recommendFirstProblem(user, limit): Promise<INode[]> {
     const firstDatas = (
       await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, user)
-    ).records.map((record) => record['_fields'][0]);
-    return firstDatas.filter((data) => data.labels).slice(0, limit);
+    ).records.map((record) => record['_fields']);
+    return firstDatas.filter((data) => data[0].labels).slice(0, limit);
+  }
+  async getProblemInfo(id): Promise<IProblemInfo> {
+    const CYPHER = `
+    match(p:Problem{id: $id})-[:IN]->(c:Category)
+    return p, c
+    `;
+    const data = (
+      await this.neo4jService.read(CYPHER, {
+        id: id,
+      })
+    ).records.map((record) => record['_fields'])[0];
+    const problem: IProblemInfo = {
+      number: data[0].properties.id.low,
+      level: data[0].properties.level.low,
+      link: data[0].properties.link,
+      title: data[0].properties.title,
+      categories: [data[1].properties.name],
+      contentHTML: '',
+    };
+    const getHtml = async () => {
+      try {
+        return await axios.get(`https://www.acmicpc.net/problem/${id}`);
+      } catch (error) {}
+    };
+    const html = await getHtml()
+      .then((html) => {
+        const $ = load(html.data);
+        const $bodyList = $('body')
+          .children('div.wrapper')
+          .children('div.container.content');
+        return $bodyList.html();
+      })
+      .then((data) =>
+        data.replace(/\/category\//g, 'https://www.acmicpc.net/category/'),
+      );
+    problem.contentHTML =
+      '<div class="container content">' + html.toString() + '</div>';
+    return problem;
   }
 }
