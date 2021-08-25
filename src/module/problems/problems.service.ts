@@ -322,8 +322,9 @@ export class ProblemService {
         return $bodyList.html();
       })
       .then((data) =>
-        data.replace(/\/category\//g, 'https://www.acmicpc.net/category/'),
+        data.replace(/href=\"\//g, 'href="https://www.acmicpc.net/'),
       );
+    console.log(html);
     problem.contentHTML =
       '<div class="container content">' + html.toString() + '</div>';
     return problem;
