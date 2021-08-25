@@ -322,7 +322,10 @@ export class ProblemService {
         return $bodyList.html();
       })
       .then((data) =>
-        data.replace(/href=\"\//g, 'href="https://www.acmicpc.net/'),
+        data.replace(
+          /href=\"\//g,
+          'target="_blank" href="https://www.acmicpc.net/',
+        ),
       );
     problem.contentHTML =
       '<div class="container content">' + html.toString() + '</div>';
