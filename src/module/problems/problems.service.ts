@@ -324,7 +324,6 @@ export class ProblemService {
       .then((data) =>
         data.replace(/href=\"\//g, 'href="https://www.acmicpc.net/'),
       );
-    console.log(html);
     problem.contentHTML =
       '<div class="container content">' + html.toString() + '</div>';
     return problem;
