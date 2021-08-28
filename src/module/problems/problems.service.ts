@@ -115,6 +115,7 @@ export class ProblemService {
         node[3].low,
       ),
     );
+
     roadmap.categories = roadmap.categories.filter((item, i) => {
       return (
         roadmap.categories.findIndex((item2, j) => {
@@ -122,7 +123,6 @@ export class ProblemService {
         }) === i
       );
     });
-
     const edges: IEdgeRelationship[] = await this.neo4jService
       .read(GET_ROADMAP_EDGES_CYPHER)
       .then(({ records }) => records.map((record) => record['_fields'][0]))

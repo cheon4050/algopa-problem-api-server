@@ -28,7 +28,6 @@ import { RecommendationLimitValidatePipe } from './pipes/recommendation.limit.va
 import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
 import { ProblemInfoIdValidatePipe } from './pipes/problemInfo.id.validate.pipe';
 import { ProblemService } from './problems.service';
-import { IProblemInfo } from './interfaces/problem.interface';
 
 @Controller('problems')
 export class ProblemController {
@@ -42,7 +41,6 @@ export class ProblemController {
     const result = user
       ? await this.problemService.getRoadMap(user)
       : await this.problemService.getDefaultRoadmap();
-
     return new RoadmapDto(result);
   }
 
@@ -75,13 +73,6 @@ export class ProblemController {
   async getProblemsInfo(
     @Param('id', ProblemInfoIdValidatePipe) id: number,
   ): Promise<ProblemInfoDto> {
-    // id가 ㅇ벗으면
-    // const check = await this.problemService.getProblemInfo(id);
-    // if (id == 0){
-    //   throw new BadRequestException({
-    //     code: NOT_FOUND_PROBLEM_ID
-    //   })
-    // }
     const check = await this.problemService.checkProblem(id);
     if (check) {
       throw new BadRequestException({
