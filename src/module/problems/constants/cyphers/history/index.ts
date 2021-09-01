@@ -1,6 +1,6 @@
 export const GET_USER_HISTORY = `
-    match (u:User {email: $email, provider: $provider})
-    match (p:Problem)
-    match (u) -[r:Solved]->(p)
+    match (u:USER {email: $email, provider: $provider})
+    match (p:PROBLEM)
+    match (u) -[r:solved]->(p)
     return p, r
 `;

@@ -220,13 +220,15 @@ export class ProblemService {
   async createSolvedRelations(solvedProblemsData: ICreateSolvedRelations) {
     const { email, provider, attempts } = solvedProblemsData;
     await this.neo4jService.write(CREATE_USER, { email, provider });
+
     const CYPHER =
       CREATE_SOLVED_RELATION +
       attempts
         .map(
-          (attempt) => `
-    match(p:Problem {id: ${attempt.problemId}})
-    merge (u)-[:Solved {try: ${attempt.attemptCount}, date: date("${attempt.time}")}]->(p)
+          (attempt) =>
+            `
+    match(p:PROBLEM {id: ${attempt.problemId}})
+    merge (u)-[:solved {try: ${attempt.attemptCount}, date: date("${attempt.time}")}]->(p)
     `,
         )
         .join('\nwith u\n');
@@ -249,16 +251,16 @@ export class ProblemService {
 
     const CYPHER = RecentlySolvedProblemNumbers.map(
       (number) => `
-      match (p:Problem {id: ${number['_fields'][0].low}})-[:IN]->(c:Category),
-      (u:User {email: $email, provider: $provider})
-      match (p1:Problem)-[:IN]->(c)
-      where p.level <= p1.level and not (u)-[:Solved]->(p1)
+      match (p:PROBLEM {id: ${number['_fields'][0].low}})-[:main_tag]->(c:CATEGORY),
+      (u:USER {email: $email, provider: $provider})
+      match (p1:PROBLEM)-[:main_tag]->(c)
+      where p.level <= p1.level and not (u)-[:solved]->(p1)
       return p1, c
       union
-      match(p:Problem {id:${number['_fields'][0].low}})-[:IN]->(c:Category),
-      (c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
-      match(c1)<-[:IN]-(p2:Problem)
-      where not (u)-[:Solved]->(p2)
+      match(p:PROBLEM {id:${number['_fields'][0].low}})-[:main_tag]->(c:CATEGORY),
+      (c:CATEGORY)-[:next]->(c1:CATEGORY), (u:USER {email: $email, provider: $provider})
+      match(c1)<-[:main_tag]-(p2:PROBLEM)
+      where not (u)-[:solved]->(p2)
       return p2 as p1, c
       `,
     ).join(`\nunion \n`);
@@ -292,7 +294,7 @@ export class ProblemService {
   }
   async getProblemInfo(id): Promise<IProblemInfo> {
     const CYPHER = `
-    match(p:Problem{id: $id})-[:IN]->(c:Category)
+    match(p:PROBLEM{id: $id})-[:main_tag]->(c:CATEGORY)
     return p, c
     `;
     const data = (
@@ -333,7 +335,7 @@ export class ProblemService {
   }
   async checkProblem(id): Promise<boolean> {
     const CYPHER = `
-    match(p:Problem{id: $id})
+    match(p:PROBLEM{id: $id})
     return p
     `;
     const checkData = (
