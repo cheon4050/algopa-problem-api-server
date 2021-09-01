@@ -9,13 +9,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     ConfigModule.forRoot({
       load: [configuration],
       validationSchema: Joi.object({
-        NEO4J_SCHEME: Joi.string().default('neo4j+s'),
-        NEO4J_HOST: Joi.string().default('3e367a10.databases.neo4j.io'),
+        NEO4J_SCHEME: Joi.string().default('neo4j'),
+        NEO4J_HOST: Joi.string().default('3.35.26.158:7687'),
         NEO4J_PORT: Joi.number().default(7687),
         NEO4J_DATABASE: Joi.string().default('neo4j'),
         NEO4J_USERNAME: Joi.string().default('neo4j'),
         NEO4J_PASSWORD: Joi.string().default(
-          'wa79w_UQynByLtW3mMjEqOyxHVddMnqJDx-5Od34x2Q',
+          'logic-olivia-media-brave-seminar-5439',
         ),
       }),
     }),
