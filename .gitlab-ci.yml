@@ -1,0 +1,56 @@
+image:
+  name: amazon/aws-cli
+  entrypoint: ['']
+
+variables:
+  ECR_REPOSITORY: algopa-problem
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ''
+
+services:
+  - docker:dind
+
+before_script:
+  - amazon-linux-extras install docker
+  - aws --version
+  - docker --version
+  - aws ecr get-login-password --region "${AWS_DEFAULT_REGION}" | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+  - IMAGE_TAG="$(echo $CI_COMMIT_SHA | head -c 8)"
+
+stages:
+  - build
+
+develop:
+  stage: build
+  script:
+    - docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:develop" || true
+    - docker build --cache-from "$ECR_REGISTRY/$ECR_REPOSITORY:develop" -t "$ECR_REGISTRY/$ECR_REPOSITORY:develop" -f dockerfile.dev .
+    - docker push "$ECR_REGISTRY/$ECR_REPOSITORY:develop"
+
+  only:
+    refs:
+      - develop
+      - pushes
+    changes:
+      - src/*
+      - pakcage.json
+      - dockerfile.dev
+
+prodcution:
+  stage: build
+  script:
+    - docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:latest" || true
+    - docker build --cache-from "$ECR_REGISTRY/$ECR_REPOSITORY:latest" -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
+
+    - docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+    - docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+  only:
+    refs:
+      - main
+      - merge_requests
+
+    changes:
+      - src/*
+      - pakcage.json
+      - dockerfile
