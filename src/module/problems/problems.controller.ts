@@ -90,7 +90,7 @@ export class ProblemController {
     const { bojId, email, provider } = initialUserHistoryData;
     this.problemService
       .getAllProblems()
-      .then((problems) => problems.map(({ number: problemId }) => problemId))
+      .then((problems) => problems.map(({ id: problemId }) => problemId))
       .then((problemIds) => {
         return this.lambdaService
           .invoke({

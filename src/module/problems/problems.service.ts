@@ -71,7 +71,7 @@ export class ProblemService {
     const nodes: INode[] = datas.filter((data) => data[0].labels);
     const edges: IEdgeRelationship[] = datas.filter((data) => data[0].type);
     roadmap.categories = nodes
-      .filter((node) => node[0].labels.includes('Category'))
+      .filter((node) => node[0].labels.includes('CATEGORY'))
       .map((node) =>
         new CategoryNode(
           node[0].properties as ICategoryProperty,
@@ -290,6 +290,7 @@ export class ProblemService {
     const firstDatas = (
       await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, user)
     ).records.map((record) => record['_fields']);
+    console.log(firstDatas);
     return firstDatas.filter((data) => data[0].labels).slice(0, limit);
   }
   async getProblemInfo(id): Promise<IProblemInfo> {
@@ -303,7 +304,7 @@ export class ProblemService {
       })
     ).records.map((record) => record['_fields'])[0];
     const problem: IProblemInfo = {
-      number: data[0].properties.id.low,
+      id: data[0].properties.id.low,
       level: data[0].properties.level.low,
       link: data[0].properties.link,
       title: data[0].properties.title,
@@ -340,7 +341,7 @@ export class ProblemService {
     `;
     const checkData = (
       await this.neo4jService.read(CYPHER, {
-        id: id,
+        id,
       })
     ).records.map((record) => record);
     if (checkData.length === 0) {

@@ -4,7 +4,7 @@ import { IProblem } from '../interfaces/problem.interface';
 export class ProblemDto implements IProblem {
   constructor(problem: IProblem) {
     this.nodeId = problem.nodeId;
-    this.number = problem.number;
+    this.id = problem.id;
     this.level = problem.level;
     this.link = problem.link;
     this.title = problem.title;
@@ -18,7 +18,7 @@ export class ProblemDto implements IProblem {
 
   @IsNumber()
   @IsNotEmpty()
-  number: number;
+  id: number;
 
   @IsNumber()
   @IsNotEmpty()

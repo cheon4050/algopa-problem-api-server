@@ -39,7 +39,7 @@ export class ProblemNode implements IProblemProperty {
     const { id, title, level, link, tryCount, date } = this;
     const responseObject: IProblem | ISolvedProblem | IRoadmapProblem = {
       nodeId,
-      number: id.low,
+      id: id.low,
       title,
       level: level.low,
       link,
