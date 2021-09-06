@@ -329,7 +329,14 @@ export class ProblemService {
           /href=\"\//g,
           'target="_blank" href="https://www.acmicpc.net/',
         ),
+      )
+      .then((data) =>
+        data.replace(
+          /img alt=\"\" src=\"\//g,
+          'img alt="" src="https://www.acmicpc.net/',
+        ),
       );
+
     problem.contentHTML =
       '<div class="container content">' + html.toString() + '</div>';
     return problem;
