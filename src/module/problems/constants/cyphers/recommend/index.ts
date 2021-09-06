@@ -1,61 +1,61 @@
 export const RECOMMEND_DEFAULT_PROBLEM = `
-    match (c:Category)<-[:IN]-(p:Problem)
+    match (c:CATEGORY)<-[:main_tag]-(p:PROBLEM)
     return p, c
     order by p.level
 `;
 
 export const GET_RECENT_SOLVED_PROBLEMS = `
-    match(u:User {email: $email, provider: $provider})-[r:Solved]->(p:Problem)
+    match(u:USER {email: $email, provider: $provider})-[r:solved]->(p:PROBLEM)
     return p.id
     order by r.date desc limit 10
 `;
 
 export const RECOMMEND_FIRST_PROBLEM = `
-    match (c:Category)<-[:IN]-(p:Problem), (u:User {email: $email, provider: $provider})
-    where not (u)-[:Solved]->(p)
+    match (c:CATEGORY)<-[:main_tag]-(p:PROBLEM), (u:USER {email: $email, provider: $provider})
+    where not (u)-[:solved]->(p)
     return p, c
     order by c.order
 `;
 
 export const RECOMMEND_NEXT_PROBLEM = `
-    match (p:Problem {id: $problem_number})-[:IN]->(c:Category), (u:User {email: $email, provider: $provider})
-    match (p1:Problem)-[:IN]->(c)
-    where p.level <= p1.level and not (u)-[:Solved]->(p1)
+    match (p:PROBLEM {id: $problem_number})-[:main_tag]->(c:CATEGORY), (u:USER {email: $email, provider: $provider})
+    match (p1:PROBLEM)-[:main_tag]->(c)
+    where p.level <= p1.level and not (u)-[:solved]->(p1)
     return p1 
     union
-    match(p:Problem {id:$problem_number})-[:IN]->(c:Category),(c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
-    match(c1)<-[:IN]-(p2:Problem)
-    where not (u)-[:Solved]->(p2)
+    match(p:PROBLEM {id:$problem_number})-[:main_tag]->(c:CATEGORY),(c:CATEGORY)-[:next]->(c1:CATEGORY), (u:USER {email: $email, provider: $provider})
+    match(c1)<-[:main_tag]-(p2:PROBLEM)
+    where not (u)-[:solved]->(p2)
     return p2 as p1
 `;
 
 export const RECOMMEND_LESS_PROBLEM = `
-    match(c:Category)<-[r:IN]-(p:Problem)<-[:Solved]-(u:User {email: $email, provider: $provider}) 
+    match(c:CATEGORY)<-[r:main_tag]-(p:PROBLEM)<-[:solved]-(u:USER {email: $email, provider: $provider}) 
     with collect(c.name) as name
-    match(c1:Category)
+    match(c1:CATEGORY)
     where not c1.name in name
-    match(c1)<-[:IN]-(p:Problem)
+    match(c1)<-[:main_tag]-(p:PROBLEM)
     return p, c1 as c
     order by c1.order
     union
-    match(c:Category)<-[r:IN]-(p:Problem)<-[:Solved]-(u:User {email: $email, provider: $provider}) 
+    match(c:CATEGORY)<-[r:main_tag]-(p:PROBLEM)<-[:solved]-(u:USER {email: $email, provider: $provider}) 
     with count(p) as p1, c
-    match(c)<-[r:IN]-(p)
+    match(c)<-[r:main_tag]-(p)
     with p1/tofloat(count(r)) as progress, c
-    match (c)<-[:IN]-(p)
-    match(u:User {email: $email, provider: $provider}) 
-    where not (u)-[:Solved]->(p)
+    match (c)<-[:main_tag]-(p)
+    match(u:USER {email: $email, provider: $provider}) 
+    where not (u)-[:solved]->(p)
     return p, c
     order by progress, c.order
 `;
 
 export const RECOMMEND_WRONG_PROBLEM = `
-    match(u:User {email: $email, provider: $provider})
-    match(c:Category)<-[:IN]-(p:Problem)<-[r:Solved]-(u)
+    match(u:USER {email: $email, provider: $provider})
+    match(c:CATEGORY)<-[:main_tag]-(p:PROBLEM)<-[r:solved]-(u)
     with toFloat(count(r))/sum(r.try) as failureRate, c
-    match (c)<-[:IN]-(p)
-    match(u:User {email: $email, provider: $provider})
-    where not (u)-[:Solved]->(p)
+    match (c)<-[:main_tag]-(p)
+    match(u:USER {email: $email, provider: $provider})
+    where not (u)-[:solved]->(p)
     return p, c
     order by failureRate
 `;

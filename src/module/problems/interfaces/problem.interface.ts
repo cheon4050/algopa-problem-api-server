@@ -1,13 +1,13 @@
 export interface IProblem {
   nodeId: number;
-  number: number;
+  id: number;
   level: number;
   link: string;
   title: string;
   categories?: string[];
 }
 export interface IProblemInfo {
-  number: number;
+  id: number;
   level: number;
   link: string;
   title: string;

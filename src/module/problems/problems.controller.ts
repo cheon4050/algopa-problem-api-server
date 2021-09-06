@@ -1,10 +1,10 @@
 import {
   BadRequestException,
   Body,
-  Controller,
   Get,
   HttpException,
   Param,
+  Post,
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -15,8 +15,6 @@ import {
   UNAUTHORIZED_USER,
 } from 'src/common/constant/error-code';
 import { User } from 'src/common/decorators/user.decorator';
-import { VersionGet } from 'src/common/decorators/version-get.decorator';
-import { VersionPost } from 'src/common/decorators/version-post.decorator';
 import { IJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { InitializeUserHistoryDto } from './dto/initial-user-history.dto';
 import { ProblemDto } from './dto/problem.dto';
@@ -28,15 +26,16 @@ import { RecommendationLimitValidatePipe } from './pipes/recommendation.limit.va
 import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
 import { ProblemInfoIdValidatePipe } from './pipes/problemInfo.id.validate.pipe';
 import { ProblemService } from './problems.service';
+import { VController } from 'src/common/decorators/version-controller';
 
-@Controller('problems')
+@VController({ path: 'problems', version: 'v1' })
 export class ProblemController {
   constructor(
     private readonly problemService: ProblemService,
     @InjectAwsService(Lambda) private readonly lambdaService: Lambda,
   ) {}
 
-  @VersionGet({ path: 'roadmap', version: 'v1' })
+  @Get('roadmap')
   async getRoadmap(@User() user: IJwtPayload): Promise<RoadmapDto> {
     const result = user
       ? await this.problemService.getRoadMap(user)
@@ -44,7 +43,7 @@ export class ProblemController {
     return new RoadmapDto(result);
   }
 
-  @VersionGet({ path: 'recommendation', version: 'v1' })
+  @Get('recommendation')
   async recommendProblem(
     @User() user: IJwtPayload,
     @Query('limit', RecommendationLimitValidatePipe) limit: number,
@@ -63,13 +62,13 @@ export class ProblemController {
     return result.map((problem) => new ProblemDto(problem));
   }
 
-  @VersionGet({ path: 'history', version: 'v1' })
+  @Get('history')
   async getUserHistory(@User() user: IJwtPayload): Promise<SolvedProblemDto[]> {
     const result = await this.problemService.getUserHistory(user);
 
     return result.map((problem) => new SolvedProblemDto(problem));
   }
-  @VersionGet({ path: 'info/:id', version: 'v1' })
+  @Get('info/:id')
   async getProblemsInfo(
     @Param('id', ProblemInfoIdValidatePipe) id: number,
   ): Promise<ProblemInfoDto> {
@@ -84,15 +83,16 @@ export class ProblemController {
     return result;
   }
 
-  @VersionPost({ path: 'initial/history', version: 'v1' })
+  @Post('initial/history')
   async initializeUserHistory(
     @Body() initialUserHistoryData: InitializeUserHistoryDto,
   ): Promise<void> {
     const { bojId, email, provider } = initialUserHistoryData;
     this.problemService
       .getAllProblems()
-      .then((problems) => problems.map(({ number: problemId }) => problemId))
+      .then((problems) => problems.map(({ id: problemId }) => problemId))
       .then((problemIds) => {
+        console.log(bojId, problemIds);
         return this.lambdaService
           .invoke({
             FunctionName: 'algopa-boj-crawler-2',
@@ -106,13 +106,17 @@ export class ProblemController {
           .promise();
       })
       .then((data) => {
+        console.log(data);
+        return data;
+      })
+      .then((data) => {
         const { success, statusCode, result } = JSON.parse(
           data.Payload as string,
         );
         if (!success) {
           throw new HttpException(result, statusCode);
         }
-
+        console.log(result);
         this.problemService.createSolvedRelations({
           email: email,
           provider: provider,

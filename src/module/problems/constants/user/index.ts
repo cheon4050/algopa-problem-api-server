@@ -4,8 +4,7 @@ export const GET_ONE_USER = `
 `;
 
 export const CREATE_USER = `
-    merge (u:User {email: $email, provider: $provider})
-    return u
+    merge (u:USER {email: $email, provider: $provider})
 `;
 
 export const INIT_USER_SUCCESS = `

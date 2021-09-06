@@ -34,7 +34,9 @@ async function bootstrap() {
     optionsSuccessStatus: 200,
   });
 
-  app.useGlobalInterceptors(new ErrorMessagesInterceptor(appConfig));
+  app.useGlobalInterceptors(
+    new ErrorMessagesInterceptor(appConfig, sentryConfig),
+  );
 
   await app.listen(appConfig.port);
 
