@@ -30,7 +30,6 @@ develop:
   only:
     refs:
       - develop
-      - pushes
     changes:
       - src/**/*
       - pakcage.json
@@ -48,7 +47,6 @@ prodcution:
   only:
     refs:
       - main
-      - merge_requests
 
     changes:
       - src/**/*
