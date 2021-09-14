@@ -290,7 +290,6 @@ export class ProblemService {
     const firstDatas = (
       await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, user)
     ).records.map((record) => record['_fields']);
-    console.log(firstDatas);
     return firstDatas.filter((data) => data[0].labels).slice(0, limit);
   }
   async getProblemInfo(id): Promise<IProblemInfo> {
@@ -309,36 +308,9 @@ export class ProblemService {
       link: data[0].properties.link,
       title: data[0].properties.title,
       categories: [data[1].properties.name],
-      contentHTML: '',
+      contentHTML: data[0].properties.contentHtml,
     };
-    const getHtml = async () => {
-      try {
-        return await axios.get(`https://www.acmicpc.net/problem/${id}`);
-      } catch (error) {}
-    };
-    const html = await getHtml()
-      .then((html) => {
-        const $ = load(html.data);
-        const $bodyList = $('body')
-          .children('div.wrapper')
-          .children('div.container.content');
-        return $bodyList.html();
-      })
-      .then((data) =>
-        data.replace(
-          /href=\"\//g,
-          'target="_blank" href="https://www.acmicpc.net/',
-        ),
-      )
-      .then((data) =>
-        data.replace(
-          /img alt=\"\" src=\"\//g,
-          'img alt="" src="https://www.acmicpc.net/',
-        ),
-      );
 
-    problem.contentHTML =
-      '<div class="container content">' + html.toString() + '</div>';
     return problem;
   }
   async checkProblem(id): Promise<boolean> {
