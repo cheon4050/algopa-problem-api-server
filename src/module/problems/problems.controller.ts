@@ -92,7 +92,6 @@ export class ProblemController {
       .getAllProblems()
       .then((problems) => problems.map(({ id: problemId }) => problemId))
       .then((problemIds) => {
-        console.log(bojId, problemIds);
         return this.lambdaService
           .invoke({
             FunctionName: 'algopa-boj-crawler-2',
@@ -106,7 +105,6 @@ export class ProblemController {
           .promise();
       })
       .then((data) => {
-        console.log(data);
         return data;
       })
       .then((data) => {
@@ -116,7 +114,6 @@ export class ProblemController {
         if (!success) {
           throw new HttpException(result, statusCode);
         }
-        console.log(result);
         this.problemService.createSolvedRelations({
           email: email,
           provider: provider,
