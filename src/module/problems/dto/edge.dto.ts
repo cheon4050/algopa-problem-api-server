@@ -17,5 +17,5 @@ export class EdgeDto implements IEdge {
 
   @IsString()
   @IsNotEmpty()
-  type: 'next' | 'in' | 'Solved';
+  type: 'next' | 'main_tag' | 'solved';
 }

@@ -5,7 +5,7 @@ import { IntegerType } from '../../types/integer.type';
 export class Edge implements IEdgeRelationship {
   start: IntegerType;
   end: IntegerType;
-  type: 'next' | 'in' | 'Solved';
+  type: 'next' | 'main_tag' | 'solved';
 
   constructor({ start, end, type }: IEdgeRelationship) {
     this.start = start;
