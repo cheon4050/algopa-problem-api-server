@@ -5,7 +5,13 @@ export class RecommendationTypeValidatePipe
   implements PipeTransform<string, Promise<string>>
 {
   async transform(value: string): Promise<string> {
-    const validRecommendationTypes = ['less', 'next', 'wrong'];
+    const validRecommendationTypes = [
+      'less',
+      'next',
+      'wrong',
+      'kakao',
+      'samsung',
+    ];
 
     if (!value || validRecommendationTypes.includes(value)) {
       return value;

@@ -1,7 +1,7 @@
 export const RECOMMEND_DEFAULT_PROBLEM = `
     match (c:CATEGORY)<-[:main_tag]-(p:PROBLEM)
     return p, c
-    order by p.level
+    order by p.level limit toInteger($limit)
 `;
 
 export const GET_RECENT_SOLVED_PROBLEMS = `
@@ -14,7 +14,7 @@ export const RECOMMEND_FIRST_PROBLEM = `
     match (c:CATEGORY)<-[:main_tag]-(p:PROBLEM), (u:USER {email: $email, provider: $provider})
     where not (u)-[:solved]->(p)
     return p, c
-    order by c.order
+    order by c.order limit toInteger($limit)
 `;
 
 export const RECOMMEND_NEXT_PROBLEM = `
@@ -46,7 +46,7 @@ export const RECOMMEND_LESS_PROBLEM = `
     match(u:USER {email: $email, provider: $provider}) 
     where not (u)-[:solved]->(p)
     return p, c
-    order by progress, c.order
+    order by progress, c.order 
 `;
 
 export const RECOMMEND_WRONG_PROBLEM = `
@@ -57,5 +57,12 @@ export const RECOMMEND_WRONG_PROBLEM = `
     match(u:USER {email: $email, provider: $provider})
     where not (u)-[:solved]->(p)
     return p, c
-    order by failureRate
+    order by failureRate limit toInteger($limit)
+`;
+export const RECOMMEND_DESIREDCOMPANY_PROBLEM = `
+    match(u:USER{email: $email, provider: $provider}),(co:COMPANY{name:$company})<-[:past]-(c:CATEGORY)<-[:main_tag]-(p:PROBLEM)
+    where not (p)<-[:solved]-(u)
+    with p.id as pi ,rand() as ra, c, p
+    return p, c 
+    order by ra limit toInteger($limit)
 `;
