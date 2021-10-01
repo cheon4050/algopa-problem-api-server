@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Neo4jService } from 'nest-neo4j/dist';
 import { IJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { GET_USER_HISTORY } from './constants/cyphers/history';
+import { EdgeDto } from './dto/edge.dto';
 import {
   CREATE_SOLVED_RELATION,
   GET_ALL_PROBLEMS,
@@ -17,11 +18,19 @@ import {
   RECOMMEND_DESIREDCOMPANY_PROBLEM,
 } from './constants/cyphers/recommend';
 import {
+  GET_100ROADMAP_CATEGORIES_CYPHER,
+  GET_100ROADMAP_EDGES_CYPHER,
+  GET_100ROADMAP_PROBLEMS_CYPHER,
   GET_DEFAULT_ROADMAP_CYPHER,
   GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
   GET_ROADMAP_CATEGORIES_CYPHER,
   GET_ROADMAP_EDGES_CYPHER,
   GET_ROADMAP_PROBLEMS_CYPHER,
+  GET_COMPANY_ROADMAP_CATEGORIES_CYPHER,
+  GET_COMPANY_ROADMAP_EDGES_CYPHER,
+  GET_COMPANY_ROADMAP_PROBLEMS_CYPHER,
+  GET_COMPANY_DEFAULT_ROADMAP_CYPHER,
+  GET_COMPANY_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
 } from './constants/cyphers/roadmap';
 import { CREATE_USER } from './constants/user';
 import { Edge } from './entities/edge/edge';
@@ -40,93 +49,51 @@ import {
   ISolvedProblem,
 } from './interfaces/problem.interface';
 import { IRoadMap } from './interfaces/roadmap.interface';
-import axios from 'axios';
-import { load } from 'cheerio';
-
 @Injectable()
 export class ProblemService {
   constructor(private readonly neo4jService: Neo4jService) {}
 
-  async getDefaultRoadmap(): Promise<IRoadMap> {
-    const roadmap: IRoadMap = {
+  async getRoadmap(type, user?: IJwtPayload): Promise<IRoadMap> {
+    let roadmap: IRoadMap = {
       problems: [],
       categories: [],
       edges: [],
     };
-    const datas = await this.neo4jService
-      .read(GET_DEFAULT_ROADMAP_CYPHER)
-      .then(({ records }) => records.map((record) => record['_fields']));
-    const problemNodes: INode[] = await this.neo4jService
-      .read(GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER)
-      .then(({ records }) => records.map((record) => record['_fields']))
-      .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
-    roadmap.problems = problemNodes.map((node) =>
-      new ProblemNode(node[0].properties).toResponseObject(
-        node[0].identity.low,
-        false,
-        false,
-        [node[1].properties.name],
-      ),
-    );
-    const nodes: INode[] = datas.filter((data) => data[0].labels);
-    const edges: IEdgeRelationship[] = datas.filter((data) => data[0].type);
-    roadmap.categories = nodes
-      .filter((node) => node[0].labels.includes('CATEGORY'))
-      .map((node) =>
-        new CategoryNode(
-          node[0].properties as ICategoryProperty,
-        ).toResponseObject(node[0].identity.low, node[1].low),
-      );
-    roadmap.edges = edges.map((edge) => new Edge(edge[0]).toResponseObject());
-    return roadmap;
-  }
-
-  async getRoadMap(user: IJwtPayload): Promise<IRoadMap> {
-    const roadmap: IRoadMap = {
-      problems: [],
-      categories: [],
-      edges: [],
-    };
-
-    const problemNodes: Promise<INode[]> = this.neo4jService
-      .read(GET_ROADMAP_PROBLEMS_CYPHER, user)
-      .then(({ records }) => records.map((record) => record['_fields']))
-      .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
-    const categoryNodes: Promise<INode[]> = this.neo4jService
-      .read(GET_ROADMAP_CATEGORIES_CYPHER, user)
-      .then(({ records }) => records.map((record) => record['_fields']))
-      .then((categoryDatas) => categoryDatas.filter((data) => data[2].labels));
-    const edges: Promise<IEdgeRelationship[]> = this.neo4jService
-      .read(GET_ROADMAP_EDGES_CYPHER)
-      .then(({ records }) => records.map((record) => record['_fields'][0]))
-      .then((edgeDatas) => edgeDatas.filter((data) => data.type));
-    const nodes = await Promise.all([problemNodes, categoryNodes, edges]);
-    roadmap.problems = nodes[0].map((node) =>
-      new ProblemNode(node[0].properties).toResponseObject(
-        node[0].identity.low,
-        node[1],
-        true,
-        [node[2].properties.name],
-      ),
-    );
-    roadmap.categories = nodes[1].map((node) =>
-      new CategoryNode(node[2].properties).toResponseObject(
-        node[2].identity.low,
-        node[4].low,
-        node[0],
-        node[1],
-        node[3].low,
-      ),
-    );
-    roadmap.categories = roadmap.categories.filter((item, i) => {
-      return (
-        roadmap.categories.findIndex((item2, j) => {
-          return item.name === item2.name;
-        }) === i
-      );
-    });
-    roadmap.edges = nodes[2].map((edge) => new Edge(edge).toResponseObject());
-
+    let query;
+    let param;
+    if (user) {
+      if (type) {
+        query = [
+          GET_COMPANY_ROADMAP_PROBLEMS_CYPHER,
+          GET_COMPANY_ROADMAP_CATEGORIES_CYPHER,
+          GET_COMPANY_ROADMAP_EDGES_CYPHER,
+        ];
+        param = { ...user, company: type.toUpperCase() };
+      } else {
+        query = [
+          GET_100ROADMAP_PROBLEMS_CYPHER,
+          GET_100ROADMAP_CATEGORIES_CYPHER,
+          GET_100ROADMAP_EDGES_CYPHER,
+        ];
+        param = { ...user };
+      }
+      roadmap = await this.getUserRoadmap(query, param);
+    } else {
+      if (type) {
+        query = [
+          GET_COMPANY_DEFAULT_ROADMAP_CYPHER,
+          GET_COMPANY_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
+        ];
+        param = { company: type.toUpperCase() };
+        roadmap = await this.getDefaultRoadmap(query, param);
+      } else {
+        query = [
+          GET_DEFAULT_ROADMAP_CYPHER,
+          GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
+        ];
+        roadmap = await this.getDefaultRoadmap(query);
+      }
+    }
     return roadmap;
   }
 
@@ -163,6 +130,125 @@ export class ProblemService {
         [node[1].properties.name],
       ),
     );
+  }
+  async getDefaultRoadmap(query, param?): Promise<IRoadMap> {
+    const roadmap: IRoadMap = {
+      problems: [],
+      categories: [],
+      edges: [],
+    };
+    const datas = await this.neo4jService
+      .read(query[0], param)
+      .then(({ records }) => records.map((record) => record['_fields']));
+    const problemNodes: INode[] = await this.neo4jService
+      .read(query[1], param)
+      .then(({ records }) => records.map((record) => record['_fields']))
+      .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
+    const categoryNodes: INode[] = datas.filter((data) => data[0].labels);
+    const edges: IEdgeRelationship[] = datas.filter((data) => data[0].type);
+    roadmap.categories = categoryNodes
+      .filter((node) => node[0].labels.includes('CATEGORY'))
+      .map((node) =>
+        new CategoryNode(
+          node[0].properties as ICategoryProperty,
+        ).toResponseObject(node[0].identity.low, node[1].low),
+      );
+    roadmap.problems = problemNodes.map((node) =>
+      new ProblemNode(node[0].properties).toResponseObject(
+        node[0].identity.low,
+        false,
+        false,
+        [node[1].properties.name],
+      ),
+    );
+    roadmap.edges = edges.map((edge) => new Edge(edge[0]).toResponseObject());
+    let categoryorder = categoryNodes.map((node) => {
+      return { id: node[0].identity.low, order: node[0].properties.order.low };
+    });
+    let nextedge = categoryorder.sort(function (a, b) {
+      if (a.order > b.order) {
+        return 1;
+      }
+      if (a.order < b.order) {
+        return -1;
+      }
+      return 0;
+    });
+    for (let i = 0; i < nextedge.length - 1; i++) {
+      roadmap.edges.push({
+        from: nextedge[i].id,
+        to: nextedge[i + 1].id,
+        type: 'next',
+      });
+    }
+
+    return roadmap;
+  }
+  async getUserRoadmap(query, param): Promise<IRoadMap> {
+    const roadmap: IRoadMap = {
+      problems: [],
+      categories: [],
+      edges: [],
+    };
+
+    const problemNodes: Promise<INode[]> = this.neo4jService
+      .read(query[0], param)
+      .then(({ records }) => records.map((record) => record['_fields']))
+      .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
+    const categoryNodes: Promise<INode[]> = this.neo4jService
+      .read(query[1], param)
+      .then(({ records }) => records.map((record) => record['_fields']))
+      .then((categoryDatas) => categoryDatas.filter((data) => data[2].labels));
+    const edges: Promise<IEdgeRelationship[]> = this.neo4jService
+      .read(query[2], param)
+      .then(({ records }) => records.map((record) => record['_fields'][0]))
+      .then((edgeDatas) => edgeDatas.filter((data) => data.type));
+    const nodes = await Promise.all([problemNodes, categoryNodes, edges]);
+    roadmap.problems = nodes[0].map((node) =>
+      new ProblemNode(node[0].properties).toResponseObject(
+        node[0].identity.low,
+        node[1],
+        true,
+        [node[2].properties.name],
+      ),
+    );
+    roadmap.categories = nodes[1].map((node) =>
+      new CategoryNode(node[2].properties).toResponseObject(
+        node[2].identity.low,
+        node[4].low,
+        node[0],
+        node[1],
+        node[3].low,
+      ),
+    );
+    roadmap.categories = roadmap.categories.filter((item, i) => {
+      return (
+        roadmap.categories.findIndex((item2, j) => {
+          return item.name === item2.name;
+        }) === i
+      );
+    });
+    let categoryorder = (await categoryNodes).map((node) => {
+      return { id: node[2].identity.low, order: node[2].properties.order.low };
+    });
+    roadmap.edges = nodes[2].map((edge) => new Edge(edge).toResponseObject());
+    let nextedge = categoryorder.sort(function (a, b) {
+      if (a.order > b.order) {
+        return 1;
+      }
+      if (a.order < b.order) {
+        return -1;
+      }
+      return 0;
+    });
+    for (let i = 0; i < nextedge.length - 1; i++) {
+      roadmap.edges.push({
+        from: nextedge[i].id,
+        to: nextedge[i + 1].id,
+        type: 'next',
+      });
+    }
+    return roadmap;
   }
 
   async getUserHistory(user: IJwtPayload): Promise<ISolvedProblem[]> {

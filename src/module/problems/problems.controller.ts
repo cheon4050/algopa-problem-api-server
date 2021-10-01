@@ -27,7 +27,7 @@ import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.vali
 import { ProblemInfoIdValidatePipe } from './pipes/problemInfo.id.validate.pipe';
 import { ProblemService } from './problems.service';
 import { VController } from 'src/common/decorators/version-controller';
-
+import { RoadmapTypeValidatePipe } from './pipes/Roadmap.type.validate.pipe';
 @VController({ path: 'problems', version: 'v1' })
 export class ProblemController {
   constructor(
@@ -36,10 +36,11 @@ export class ProblemController {
   ) {}
 
   @Get('roadmap')
-  async getRoadmap(@User() user: IJwtPayload): Promise<RoadmapDto> {
-    const result = user
-      ? await this.problemService.getRoadMap(user)
-      : await this.problemService.getDefaultRoadmap();
+  async getRoadmap(
+    @User() user: IJwtPayload,
+    @Query('type', RoadmapTypeValidatePipe) type: string,
+  ): Promise<RoadmapDto> {
+    const result = await this.problemService.getRoadmap(type, user);
     return new RoadmapDto(result);
   }
 
