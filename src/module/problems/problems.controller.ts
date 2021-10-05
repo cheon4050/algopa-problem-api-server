@@ -18,6 +18,7 @@ import { User } from 'src/common/decorators/user.decorator';
 import { IJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { InitializeUserHistoryDto } from './dto/initial-user-history.dto';
 import { ProblemDto } from './dto/problem.dto';
+import { TestcaseDto } from './dto/problemTestcase.dto';
 import { RoadmapDto } from './dto/roadmap.dto';
 import { ProblemInfoDto } from './dto/problemInfo.dto';
 import { SolvedProblemDto } from './dto/solved-problem.dto';
@@ -68,6 +69,20 @@ export class ProblemController {
     const result = await this.problemService.getUserHistory(user);
 
     return result.map((problem) => new SolvedProblemDto(problem));
+  }
+  @Get('case/:id')
+  async getProblemTestcase(
+    @Param('id', ProblemInfoIdValidatePipe) id: number,
+  ): Promise<TestcaseDto> {
+    const check = await this.problemService.checkProblem(id);
+    if (check) {
+      throw new BadRequestException({
+        statusCode: 404,
+        code: NOT_FOUND_PROBLEM_ID,
+      });
+    }
+    const result = await this.problemService.getProblemTestcase(id);
+    return result;
   }
   @Get('info/:id')
   async getProblemsInfo(
