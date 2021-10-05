@@ -38,6 +38,7 @@ import { CategoryNode } from './entities/nodes/category.node';
 import { ProblemNode } from './entities/nodes/problem.node';
 import { ICreateSolvedRelations } from './interfaces/create-solved-relations-request.dto';
 import { IEdgeRelationship } from './interfaces/edge-relationship.interface';
+import { ITestcase } from './interfaces/problem-testcase.interface';
 import {
   ICategoryProperty,
   INode,
@@ -441,5 +442,20 @@ export class ProblemService {
     } else {
       return false;
     }
+  }
+  async getProblemTestcase(id): Promise<ITestcase> {
+    const CYPHER = `match (p:PROBLEM{id:$id})
+    return p.input, p.output
+    `;
+    const data = (
+      await this.neo4jService.read(CYPHER, {
+        id: id,
+      })
+    ).records.map((record) => record['_fields'])[0];
+    const testcase: ITestcase = {
+      input: data[0],
+      answer: data[1],
+    };
+    return testcase;
   }
 }
