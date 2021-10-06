@@ -17,6 +17,7 @@ import {
 import { User } from 'src/common/decorators/user.decorator';
 import { IJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { InitializeUserHistoryDto } from './dto/initial-user-history.dto';
+import { UserSolvingHistoryDto } from './dto/user-solving-history.dto';
 import { ProblemDto } from './dto/problem.dto';
 import { TestcaseDto } from './dto/problemTestcase.dto';
 import { RoadmapDto } from './dto/roadmap.dto';
@@ -29,6 +30,7 @@ import { ProblemInfoIdValidatePipe } from './pipes/problemInfo.id.validate.pipe'
 import { ProblemService } from './problems.service';
 import { VController } from 'src/common/decorators/version-controller';
 import { RoadmapTypeValidatePipe } from './pipes/Roadmap.type.validate.pipe';
+import { IUserProblemSolvingData } from './interfaces/user-problem-solving-history.interface';
 @VController({ path: 'problems', version: 'v1' })
 export class ProblemController {
   constructor(
@@ -137,6 +139,21 @@ export class ProblemController {
         } as ICreateSolvedRelations);
       })
       .catch((err) => {});
+  }
+  @Post('history/:id')
+  async postUserSolvingHistory(
+    @User() user: IJwtPayload,
+    @Body() UserSolvingData: UserSolvingHistoryDto,
+    @Param('id', ProblemInfoIdValidatePipe) id: number,
+  ): Promise<void> {
+    const check = await this.problemService.checkProblem(id);
+    if (check) {
+      throw new BadRequestException({
+        statusCode: 404,
+        code: NOT_FOUND_PROBLEM_ID,
+      });
+    }
+    this.problemService.postUserSolvingData(UserSolvingData, user, id);
   }
 }
 
