@@ -50,6 +50,7 @@ import {
   ISolvedProblem,
 } from './interfaces/problem.interface';
 import { IRoadMap } from './interfaces/roadmap.interface';
+import { IUserProblemSolvingData } from './interfaces/user-problem-solving-history.interface';
 @Injectable()
 export class ProblemService {
   constructor(private readonly neo4jService: Neo4jService) {}
@@ -457,5 +458,34 @@ export class ProblemService {
       answer: data[1],
     };
     return testcase;
+  }
+  async postUserSolvingData(
+    Data: IUserProblemSolvingData,
+    user: IJwtPayload,
+    id,
+  ) {
+    const {
+      success,
+      result,
+      isSolved,
+      submitTimestamp,
+      solvedTime,
+      executedTime,
+    } = Data;
+    const CYPHER = `
+      match (u:USER{email:$email, provider:$provider}), (p:PROBLEM{id:$id})
+      merge (u)-[r:submit{success:$success, result:$result,
+        isSolved:$isSolved, submitTimestamp:datetime($submitTimestamp),solvedTime:$solvedTime, executedTime:$executedTime}]->(p)
+      `;
+    await this.neo4jService.write(CYPHER, {
+      id,
+      success,
+      result,
+      isSolved,
+      submitTimestamp,
+      solvedTime,
+      executedTime,
+      ...user,
+    });
   }
 }
