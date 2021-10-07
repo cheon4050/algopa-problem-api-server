@@ -9,9 +9,9 @@ export class TestcaseDto implements ITestcase {
 
   @IsString({ each: true })
   @IsNotEmpty()
-  input: string[];
+  input: string;
 
   @IsString({ each: true })
   @IsNotEmpty()
-  answer: string[];
+  answer: string;
 }

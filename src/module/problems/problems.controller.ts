@@ -75,7 +75,7 @@ export class ProblemController {
   @Get('case/:id')
   async getProblemTestcase(
     @Param('id', ProblemInfoIdValidatePipe) id: number,
-  ): Promise<TestcaseDto> {
+  ): Promise<TestcaseDto[]> {
     const check = await this.problemService.checkProblem(id);
     if (check) {
       throw new BadRequestException({

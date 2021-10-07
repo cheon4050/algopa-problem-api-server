@@ -1,4 +1,4 @@
 export interface ITestcase {
-  input: string[];
-  answer: string[];
+  input: string;
+  answer: string;
 }
