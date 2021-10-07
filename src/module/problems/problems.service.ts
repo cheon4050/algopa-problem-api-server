@@ -444,7 +444,8 @@ export class ProblemService {
       return false;
     }
   }
-  async getProblemTestcase(id): Promise<ITestcase> {
+  async getProblemTestcase(id): Promise<ITestcase[]> {
+    let testcase: ITestcase[] = [];
     const CYPHER = `match (p:PROBLEM{id:$id})
     return p.input, p.output
     `;
@@ -453,10 +454,14 @@ export class ProblemService {
         id: id,
       })
     ).records.map((record) => record['_fields'])[0];
-    const testcase: ITestcase = {
-      input: data[0],
-      answer: data[1],
-    };
+    const input = data[0];
+    const answer = data[1];
+    for (let i = 0; i < input.length; i++) {
+      testcase.push({
+        input: input[i],
+        answer: answer[i],
+      });
+    }
     return testcase;
   }
   async postUserSolvingData(
