@@ -3,10 +3,9 @@ import { ProblemService } from './problems.service';
 import { Neo4jService } from 'nest-neo4j';
 import { ProblemController } from './problems.controller';
 import { LambdaProviderModule } from 'src/provider/aws/lambda/provider.module';
-import { SentryConfigModule } from 'src/config/sentry/config.module';
 
 @Module({
-  imports: [LambdaProviderModule, SentryConfigModule],
+  imports: [LambdaProviderModule],
   controllers: [ProblemController],
   providers: [ProblemService],
 })
