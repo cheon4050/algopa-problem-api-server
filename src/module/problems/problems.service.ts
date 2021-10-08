@@ -16,6 +16,8 @@ import {
   RECOMMEND_LESS_PROBLEM,
   RECOMMEND_WRONG_PROBLEM,
   RECOMMEND_DESIREDCOMPANY_PROBLEM,
+  NEXT_RECOMMEND_SIMILAR_PROBLEM,
+  NEXT_RECOMMEND_NEW_CATEGORY_PROBLEM,
 } from './constants/cyphers/recommend';
 import {
   GET_100ROADMAP_CATEGORIES_CYPHER,
@@ -100,12 +102,31 @@ export class ProblemService {
   }
 
   async recommendProblem(
-    { limit, type },
+    { limit, type, problemId },
     user?: IJwtPayload,
   ): Promise<IProblem[]> {
     let recommendProblemNodes: INode[];
+    if (problemId) {
+      let recommendSimilarProblemNodes: INode[];
+      recommendSimilarProblemNodes = await this.nextRecommendSimilarProblem(
+        user,
+        limit,
+        problemId,
+      );
+      let recommendNewCategoryProblemNodes: INode[];
+      recommendNewCategoryProblemNodes =
+        await this.nextRecommendNewCateogryProblem(user, limit, problemId);
+      recommendProblemNodes = [
+        ...recommendSimilarProblemNodes,
+        ...recommendNewCategoryProblemNodes,
+      ];
 
-    if (user) {
+      return recommendProblemNodes.map((node) =>
+        new ProblemNode(
+          node[0].properties as IProblemProperty,
+        ).toResponseObject(node[0].identity.low, false, false, node[1]),
+      );
+    } else if (user) {
       if (type === 'next') {
         recommendProblemNodes = await this.recommendNextProblem(user, limit);
       } else if (type == 'less') {
@@ -406,7 +427,34 @@ export class ProblemService {
     ).records.map((record) => record['_fields']);
     return firstDatas.filter((data) => data[0].labels);
   }
-
+  private async nextRecommendSimilarProblem(
+    user,
+    limit,
+    problemId,
+  ): Promise<INode[]> {
+    const datas = (
+      await this.neo4jService.read(NEXT_RECOMMEND_SIMILAR_PROBLEM, {
+        ...user,
+        limit,
+        id: problemId,
+      })
+    ).records.map((record) => record['_fields']);
+    return datas.filter((data) => data[0].labels);
+  }
+  private async nextRecommendNewCateogryProblem(
+    user,
+    limit,
+    problemId,
+  ): Promise<INode[]> {
+    const datas = (
+      await this.neo4jService.read(NEXT_RECOMMEND_NEW_CATEGORY_PROBLEM, {
+        ...user,
+        limit,
+        id: problemId,
+      })
+    ).records.map((record) => record['_fields']);
+    return datas.filter((data) => data[0].labels);
+  }
   async getProblemInfo(id): Promise<IProblemInfo> {
     const CYPHER = `
     match(p:PROBLEM{id: $id})-[:main_tag]->(c:CATEGORY)

@@ -26,7 +26,7 @@ import { SolvedProblemDto } from './dto/solved-problem.dto';
 import { ICreateSolvedRelations } from './interfaces/create-solved-relations-request.dto';
 import { RecommendationLimitValidatePipe } from './pipes/recommendation.limit.validate.pipe';
 import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
-import { ProblemInfoIdValidatePipe } from './pipes/problemInfo.id.validate.pipe';
+import { ProblemIdValidatePipe } from './pipes/problemInfo.id.validate.pipe';
 import { ProblemService } from './problems.service';
 import { VController } from 'src/common/decorators/version-controller';
 import { RoadmapTypeValidatePipe } from './pipes/Roadmap.type.validate.pipe';
@@ -52,14 +52,24 @@ export class ProblemController {
     @User() user: IJwtPayload,
     @Query('limit', RecommendationLimitValidatePipe) limit: number,
     @Query('type', RecommendationTypeValidatePipe) type: string,
+    @Query('problemId', ProblemIdValidatePipe) problemId: number,
   ): Promise<ProblemDto[]> {
-    if (type && !user) {
+    if ((problemId || type) && !user) {
       throw new UnauthorizedException({
         code: UNAUTHORIZED_USER,
       });
     }
+    if (problemId) {
+      const check = await this.problemService.checkProblem(problemId);
+      if (check) {
+        throw new BadRequestException({
+          statusCode: 404,
+          code: NOT_FOUND_PROBLEM_ID,
+        });
+      }
+    }
     const result = await this.problemService.recommendProblem(
-      { limit, type },
+      { limit, type, problemId },
       user,
     );
 
@@ -74,7 +84,7 @@ export class ProblemController {
   }
   @Get('case/:id')
   async getProblemTestcase(
-    @Param('id', ProblemInfoIdValidatePipe) id: number,
+    @Param('id', ProblemIdValidatePipe) id: number,
   ): Promise<TestcaseDto[]> {
     const check = await this.problemService.checkProblem(id);
     if (check) {
@@ -88,7 +98,7 @@ export class ProblemController {
   }
   @Get('info/:id')
   async getProblemsInfo(
-    @Param('id', ProblemInfoIdValidatePipe) id: number,
+    @Param('id', ProblemIdValidatePipe) id: number,
   ): Promise<ProblemInfoDto> {
     const check = await this.problemService.checkProblem(id);
     if (check) {
@@ -144,7 +154,7 @@ export class ProblemController {
   async postUserSolvingHistory(
     @User() user: IJwtPayload,
     @Body() UserSolvingData: UserSolvingHistoryDto,
-    @Param('id', ProblemInfoIdValidatePipe) id: number,
+    @Param('id', ProblemIdValidatePipe) id: number,
   ): Promise<void> {
     const check = await this.problemService.checkProblem(id);
     if (check) {
