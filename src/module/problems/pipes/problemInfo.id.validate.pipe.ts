@@ -6,7 +6,7 @@ export class ProblemIdValidatePipe implements PipeTransform<number> {
     if (value) {
       return value;
     } else {
-      throw new BadRequestException('INVALID_PROBLEM_ID');
+      return null;
     }
   }
 }
