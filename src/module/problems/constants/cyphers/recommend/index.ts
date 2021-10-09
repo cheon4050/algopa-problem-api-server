@@ -88,7 +88,7 @@ union
 }
 match(p1)-[:main_tag]-(cate:CATEGORY)
 optional match (p1)-[:sub_tag]-(cate2:CATEGORY)
-return distinct p1,  [cate.name]+collect(cate2.name) limit toInteger($limit)
+return distinct p1,  [cate.name]+collect(cate2.name) limit toInteger($limit/2)
 `;
 
 export const NEXT_RECOMMEND_NEW_CATEGORY_PROBLEM = `

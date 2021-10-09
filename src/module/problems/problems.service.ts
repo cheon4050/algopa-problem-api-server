@@ -53,6 +53,7 @@ import {
 } from './interfaces/problem.interface';
 import { IRoadMap } from './interfaces/roadmap.interface';
 import { IUserProblemSolvingData } from './interfaces/user-problem-solving-history.interface';
+import { max } from 'class-validator';
 @Injectable()
 export class ProblemService {
   constructor(private readonly neo4jService: Neo4jService) {}
@@ -517,27 +518,19 @@ export class ProblemService {
     user: IJwtPayload,
     id,
   ) {
-    const {
-      success,
-      result,
-      isSolved,
-      submitTimestamp,
-      solvedTime,
-      executedTime,
-    } = Data;
+    const { success, isSolved, submitTimestamp, solvedTime, executedTime } =
+      Data;
     const CYPHER = `
       match (u:USER{email:$email, provider:$provider}), (p:PROBLEM{id:$id})
-      merge (u)-[r:submit{success:$success, result:$result,
-        isSolved:$isSolved, submitTimestamp:datetime($submitTimestamp),solvedTime:$solvedTime, executedTime:$executedTime}]->(p)
+      merge (u)-[r:submit{success:$success, isSolved:$isSolved, submitTimestamp:datetime($submitTimestamp),solvedTime:toInteger($solvedTime), executedTime:toInteger($executedTime)}]->(p)
       `;
     await this.neo4jService.write(CYPHER, {
       id,
       success,
-      result,
       isSolved,
       submitTimestamp,
       solvedTime,
-      executedTime,
+      executedTime: Math.max(...executedTime),
       ...user,
     });
   }
