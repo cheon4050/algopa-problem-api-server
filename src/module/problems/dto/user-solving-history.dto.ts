@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsString, IsBoolean, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsDateString,
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+} from 'class-validator';
 import { IUserProblemSolvingData } from '../interfaces/user-problem-solving-history.interface';
 export class UserSolvingHistoryDto implements IUserProblemSolvingData {
   @IsBoolean()
@@ -9,9 +15,9 @@ export class UserSolvingHistoryDto implements IUserProblemSolvingData {
   @IsNotEmpty()
   isSolved: boolean;
 
-  @IsString()
+  @IsDateString()
   @IsNotEmpty()
-  submitTimestamp: string;
+  submitTimestamp: Date;
 
   @IsNumber()
   @IsNotEmpty()
@@ -20,4 +26,8 @@ export class UserSolvingHistoryDto implements IUserProblemSolvingData {
   @IsNumber({}, { each: true })
   @IsNotEmpty()
   executedTime: number[];
+
+  @IsNumber({}, { each: true })
+  @IsOptional()
+  memoryUsage?: number[];
 }

@@ -1,7 +1,8 @@
 export interface IUserProblemSolvingData {
   success: boolean;
   isSolved: boolean;
-  submitTimestamp: String;
+  submitTimestamp: Date;
   solvedTime: number;
   executedTime: number[];
+  memoryUsage?: number[];
 }
