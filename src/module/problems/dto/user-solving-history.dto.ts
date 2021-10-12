@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsNumber,
   IsOptional,
+  IsString,
 } from 'class-validator';
 import { IUserProblemSolvingData } from '../interfaces/user-problem-solving-history.interface';
 export class UserSolvingHistoryDto implements IUserProblemSolvingData {
@@ -14,6 +15,10 @@ export class UserSolvingHistoryDto implements IUserProblemSolvingData {
   @IsBoolean()
   @IsNotEmpty()
   isSolved: boolean;
+
+  @IsString()
+  @IsNotEmpty()
+  result: string;
 
   @IsDateString()
   @IsNotEmpty()
