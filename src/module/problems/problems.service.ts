@@ -18,6 +18,7 @@ import {
   RECOMMEND_DESIREDCOMPANY_PROBLEM,
   NEXT_RECOMMEND_SIMILAR_PROBLEM,
   NEXT_RECOMMEND_NEW_CATEGORY_PROBLEM,
+  RECOMMEND_NEXT_PROBLEM,
 } from './constants/cyphers/recommend';
 import {
   GET_100ROADMAP_CATEGORIES_CYPHER,
@@ -151,7 +152,7 @@ export class ProblemService {
         node[0].identity.low,
         false,
         false,
-        [node[1].properties.name],
+        node[1],
       ),
     );
   }
@@ -355,43 +356,45 @@ export class ProblemService {
   }
 
   private async recommendNextProblem(user, limit): Promise<INode[]> {
-    const RecentlySolvedProblemNumbers = await this.neo4jService
-      .read(GET_RECENT_SOLVED_PROBLEMS, user)
-      .then(({ records }) => records);
-    if (RecentlySolvedProblemNumbers.length == 0) {
-      return await this.recommendFirstProblem(user, limit);
-    }
+    // const RecentlySolvedProblemNumbers = await this.neo4jService
+    //   .read(GET_RECENT_SOLVED_PROBLEMS, user)
+    //   .then(({ records }) => records);
+    // if (RecentlySolvedProblemNumbers.length == 0) {
+    //   return await this.recommendFirstProblem(user, limit);
+    // }
 
-    const CYPHER = RecentlySolvedProblemNumbers.map(
-      (number) => `
-      match (p:PROBLEM {id: ${number['_fields'][0].low}})-[:main_tag]->(c:CATEGORY),
-      (u:USER {email: $email, provider: $provider})
-      match (p1:PROBLEM)-[:main_tag]->(c)
-      where p.level <= p1.level and not (u)-[:solved]->(p1)
-      return p1, c
-      union
-      match(p:PROBLEM {id:${number['_fields'][0].low}})-[:main_tag]->(c:CATEGORY),
-      (c:CATEGORY)-[:next]->(c1:CATEGORY), (u:USER {email: $email, provider: $provider})
-      match(c1)<-[:main_tag]-(p2:PROBLEM)
-      where not (u)-[:solved]->(p2)
-      return p2 as p1, c
-      `,
-    ).join(`\nunion \n`);
+    // const CYPHER = RecentlySolvedProblemNumbers.map(
+    //   (number) => `
+    //   match (p:PROBLEM {id: ${number['_fields'][0].low}})-[:main_tag]->(c:CATEGORY),
+    //   (u:USER {email: $email, provider: $provider})
+    //   match (p1:PROBLEM)-[:main_tag]->(c)
+    //   where p.level <= p1.level and not (u)-[:solved]->(p1)
+    //   return p1, c
+    //   union
+    //   match(p:PROBLEM {id:${number['_fields'][0].low}})-[:main_tag]->(c:CATEGORY),
+    //   (c:CATEGORY)-[:next]->(c1:CATEGORY), (u:USER {email: $email, provider: $provider})
+    //   match(c1)<-[:main_tag]-(p2:PROBLEM)
+    //   where not (u)-[:solved]->(p2)
+    //   return p2 as p1, c
+    //   `,
+    // ).join(`\nunion \n`);
     const nextDatas = (
-      await this.neo4jService.read(CYPHER, {
+      await this.neo4jService.read(RECOMMEND_NEXT_PROBLEM, {
         ...user,
+        limit,
       })
     ).records.map((record) => record['_fields']);
-    return nextDatas.filter((data) => data[0].labels).slice(0, limit);
+    return nextDatas.filter((data) => data[0].labels);
   }
 
   private async recommendLessProblem(user, limit): Promise<INode[]> {
     const lessDatas = (
       await this.neo4jService.read(RECOMMEND_LESS_PROBLEM, {
         ...user,
+        limit,
       })
     ).records.map((record) => record['_fields']);
-    return lessDatas.filter((data) => data[0].labels).slice(0, limit);
+    return lessDatas.filter((data) => data[0].labels);
   }
 
   private async recommendWrongProblem(user, limit): Promise<INode[]> {
