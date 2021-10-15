@@ -544,4 +544,24 @@ export class ProblemService {
       ...user,
     });
   }
+  async postUserData(
+    email: string,
+    provider: string,
+    desiredCompanies?: string[],
+  ) {
+    let CYPHER = `
+    merge(u:USER{email:$email, provider:$provider})
+    `;
+    if (desiredCompanies !== undefined) {
+      desiredCompanies.map(
+        (data) =>
+          (CYPHER =
+            `match(${data}:COMPANY{name:"${data.toUpperCase()}"})` + CYPHER),
+      );
+      desiredCompanies.map(
+        (data) => (CYPHER += `merge (u)-[:desire]->(${data})`),
+      );
+    }
+    await this.neo4jService.write(CYPHER, { email, provider });
+  }
 }
