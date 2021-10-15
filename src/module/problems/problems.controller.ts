@@ -115,40 +115,41 @@ export class ProblemController {
   async initializeUserHistory(
     @Body() initialUserHistoryData: InitializeUserHistoryDto,
   ): Promise<void> {
-    const { bojId, email, provider } = initialUserHistoryData;
-    this.problemService
-      .getAllProblems()
-      .then((problems) => problems.map(({ id: problemId }) => problemId))
-      .then((problemIds) => {
-        return this.lambdaService
-          .invoke({
-            FunctionName: 'algopa-boj-crawler-2',
-            InvocationType: 'RequestResponse',
-            Payload: JSON.stringify({
-              userId: bojId,
-              problemIds,
-              action: 'user_attempt_count',
-            }),
-          })
-          .promise();
-      })
-      .then((data) => {
-        return data;
-      })
-      .then((data) => {
-        const { success, statusCode, result } = JSON.parse(
-          data.Payload as string,
-        );
-        if (!success) {
-          throw new HttpException(result, statusCode);
-        }
-        this.problemService.createSolvedRelations({
-          email: email,
-          provider: provider,
-          attempts: result,
-        } as ICreateSolvedRelations);
-      })
-      .catch((err) => {});
+    const { email, provider, desiredCompanies } = initialUserHistoryData;
+    this.problemService.postUserData(email, provider, desiredCompanies);
+    // this.problemService
+    //   .getAllProblems()
+    //   .then((problems) => problems.map(({ id: problemId }) => problemId))
+    //   .then((problemIds) => {
+    //     return this.lambdaService
+    //       .invoke({
+    //         FunctionName: 'algopa-boj-crawler-2',
+    //         InvocationType: 'RequestResponse',
+    //         Payload: JSON.stringify({
+    //           userId: bojId,
+    //           problemIds,
+    //           action: 'user_attempt_count',
+    //         }),
+    //       })
+    //       .promise();
+    //   })
+    //   .then((data) => {
+    //     return data;
+    //   })
+    //   .then((data) => {
+    //     const { success, statusCode, result } = JSON.parse(
+    //       data.Payload as string,
+    //     );
+    //     if (!success) {
+    //       throw new HttpException(result, statusCode);
+    //     }
+    //     this.problemService.createSolvedRelations({
+    //       email: email,
+    //       provider: provider,
+    //       attempts: result,
+    //     } as ICreateSolvedRelations);
+    //   })
+    //   .catch((err) => {});
   }
   @Post('history/:id')
   async postUserSolvingHistory(
