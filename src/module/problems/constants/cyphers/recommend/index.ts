@@ -283,5 +283,5 @@ call{
 }
 match(p1)-[:sub_tag]-(c2:CATEGORY)
 match(p1)-[:main_tag]-(c1:CATEGORY)
-return p1, [c1.name]+ collect(c2.name) limit toInteger($limit)
+return p1, [c1.name]+ collect(c2.name) limit toInteger($limit/2)
 `;
