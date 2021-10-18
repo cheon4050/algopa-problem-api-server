@@ -56,7 +56,7 @@ export class ProblemController {
     @Query('problemId', ProblemIdValidatePipe) problemId: number,
     @Query('company', RecommendationCompanyValidatePipe) company: string,
   ): Promise<ProblemDto[]> {
-    if ((problemId || type) && !user) {
+    if ((problemId || type || company) && !user) {
       throw new UnauthorizedException({
         code: UNAUTHORIZED_USER,
       });

@@ -37,7 +37,7 @@ match(u:USER {email:$email, provider: $provider})
 call{
     with u
     match(u)-[r:solved]->(p:PROBLEM)
-    //where (p)-[:recommend]-(:COMPANY{name:$company})
+    // where (p)-[:recommend]-(:COMPANY{name:$company})
     return p
     order by r.date desc limit 10
 }
