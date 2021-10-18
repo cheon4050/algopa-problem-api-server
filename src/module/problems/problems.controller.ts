@@ -31,6 +31,7 @@ import { ProblemService } from './problems.service';
 import { VController } from 'src/common/decorators/version-controller';
 import { RoadmapTypeValidatePipe } from './pipes/Roadmap.type.validate.pipe';
 import { IUserProblemSolvingData } from './interfaces/user-problem-solving-history.interface';
+import { RecommendationCompanyValidatePipe } from './pipes/recommendation.company.validate.pipe';
 @VController({ path: 'problems', version: 'v1' })
 export class ProblemController {
   constructor(
@@ -53,6 +54,7 @@ export class ProblemController {
     @Query('limit', RecommendationLimitValidatePipe) limit: number,
     @Query('type', RecommendationTypeValidatePipe) type: string,
     @Query('problemId', ProblemIdValidatePipe) problemId: number,
+    @Query('company', RecommendationCompanyValidatePipe) company: string,
   ): Promise<ProblemDto[]> {
     if ((problemId || type) && !user) {
       throw new UnauthorizedException({
@@ -69,7 +71,7 @@ export class ProblemController {
       }
     }
     const result = await this.problemService.recommendProblem(
-      { limit, type, problemId },
+      { limit, type, problemId, company },
       user,
     );
 

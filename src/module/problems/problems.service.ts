@@ -104,7 +104,7 @@ export class ProblemService {
   }
 
   async recommendProblem(
-    { limit, type, problemId },
+    { limit, type, problemId, company },
     user?: IJwtPayload,
   ): Promise<IProblem[]> {
     let recommendProblemNodes: INode[];
@@ -130,11 +130,23 @@ export class ProblemService {
       );
     } else if (user) {
       if (type === 'next') {
-        recommendProblemNodes = await this.recommendNextProblem(user, limit);
+        recommendProblemNodes = await this.recommendNextProblem(
+          user,
+          limit,
+          company,
+        );
       } else if (type == 'less') {
-        recommendProblemNodes = await this.recommendLessProblem(user, limit);
+        recommendProblemNodes = await this.recommendLessProblem(
+          user,
+          limit,
+          company,
+        );
       } else if (type === 'wrong') {
-        recommendProblemNodes = await this.recommendWrongProblem(user, limit);
+        recommendProblemNodes = await this.recommendWrongProblem(
+          user,
+          limit,
+          company,
+        );
       } else if (type === 'kakao' || type === 'samsung') {
         recommendProblemNodes = await this.recommendDesiredCompanyProblem(
           user,
@@ -355,7 +367,7 @@ export class ProblemService {
     return defaultDatas.filter((data) => data[0].labels);
   }
 
-  private async recommendNextProblem(user, limit): Promise<INode[]> {
+  private async recommendNextProblem(user, limit, company): Promise<INode[]> {
     // const RecentlySolvedProblemNumbers = await this.neo4jService
     //   .read(GET_RECENT_SOLVED_PROBLEMS, user)
     //   .then(({ records }) => records);
@@ -378,6 +390,20 @@ export class ProblemService {
     //   return p2 as p1, c
     //   `,
     // ).join(`\nunion \n`);
+    if (company !== undefined) {
+      let CYPHER = RECOMMEND_NEXT_PROBLEM.replace(
+        '//where (p)-[:recommend]-(:COMPANY{name:$company})',
+        'where (p)-[:recommend]-(:COMPANY{name:$company})',
+      );
+      const nextDatas = (
+        await this.neo4jService.read(CYPHER, {
+          ...user,
+          limit,
+          company: company.toUpperCase(),
+        })
+      ).records.map((record) => record['_fields']);
+      return nextDatas.filter((data) => data[0].labels);
+    }
     const nextDatas = (
       await this.neo4jService.read(RECOMMEND_NEXT_PROBLEM, {
         ...user,
@@ -387,7 +413,21 @@ export class ProblemService {
     return nextDatas.filter((data) => data[0].labels);
   }
 
-  private async recommendLessProblem(user, limit): Promise<INode[]> {
+  private async recommendLessProblem(user, limit, company): Promise<INode[]> {
+    if (company !== undefined) {
+      let CYPHER = RECOMMEND_LESS_PROBLEM.replace(
+        '// where (c)-[:past]->(:COMPANY{name:$company})',
+        'where (c)-[:past]->(:COMPANY{name:$company})',
+      );
+      const lessDatas = (
+        await this.neo4jService.read(CYPHER, {
+          ...user,
+          limit,
+          company: company.toUpperCase(),
+        })
+      ).records.map((record) => record['_fields']);
+      return lessDatas.filter((data) => data[0].labels);
+    }
     const lessDatas = (
       await this.neo4jService.read(RECOMMEND_LESS_PROBLEM, {
         ...user,
@@ -397,7 +437,21 @@ export class ProblemService {
     return lessDatas.filter((data) => data[0].labels);
   }
 
-  private async recommendWrongProblem(user, limit): Promise<INode[]> {
+  private async recommendWrongProblem(user, limit, company): Promise<INode[]> {
+    if (company !== undefined) {
+      let CYPHER = RECOMMEND_WRONG_PROBLEM.replace(
+        '// where (c)-[:past]->(:COMPANY{name:$company})',
+        'where (c)-[:past]->(:COMPANY{name:$company})',
+      );
+      const wrongDatas = (
+        await this.neo4jService.read(CYPHER, {
+          ...user,
+          limit,
+          company: company.toUpperCase(),
+        })
+      ).records.map((record) => record['_fields']);
+      return wrongDatas.filter((data) => data[0].labels);
+    }
     const wrongDatas = (
       await this.neo4jService.read(RECOMMEND_WRONG_PROBLEM, {
         ...user,

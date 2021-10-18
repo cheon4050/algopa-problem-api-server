@@ -30,8 +30,6 @@ match(p:PROBLEM)-[:main_tag]->(c:CATEGORY),(p)-[:sub_tag]-(c2:CATEGORY), (u:USER
 where not (p)<-[:solved]-(u)
 return p, [c.name]+collect(c2.name), p.level, UserLevel
 order by abs(p.level-UserLevel) limit toInteger($limit)
-
-
 `;
 //다음으로 풀면 좋은 문제 추천
 export const RECOMMEND_NEXT_PROBLEM = `
@@ -39,6 +37,7 @@ match(u:USER {email:$email, provider: $provider})
 call{
     with u
     match(u)-[r:solved]->(p:PROBLEM)
+    //where (p)-[:recommend]-(:COMPANY{name:$company})
     return p
     order by r.date desc limit 10
 }
@@ -112,6 +111,7 @@ call{
     order by progress, c.order 
 }
 with distinct c, u
+// where (c)-[:past]->(:COMPANY{name:$company})
 //유저 레벨 계산
 call{
     with c, u
@@ -212,6 +212,7 @@ call{
     return distinct 0 as failureRate, c
 }
 with distinct c, u
+// where (c)-[:past]->(:COMPANY{name:$company})
 //유저 레벨 계산
 call{
     with c, u
