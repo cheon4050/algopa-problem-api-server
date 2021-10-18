@@ -54,7 +54,6 @@ import {
 } from './interfaces/problem.interface';
 import { IRoadMap } from './interfaces/roadmap.interface';
 import { IUserProblemSolvingData } from './interfaces/user-problem-solving-history.interface';
-import { max } from 'class-validator';
 @Injectable()
 export class ProblemService {
   constructor(private readonly neo4jService: Neo4jService) {}
