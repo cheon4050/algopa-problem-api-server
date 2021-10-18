@@ -54,7 +54,6 @@ import {
 } from './interfaces/problem.interface';
 import { IRoadMap } from './interfaces/roadmap.interface';
 import { IUserProblemSolvingData } from './interfaces/user-problem-solving-history.interface';
-import { max } from 'class-validator';
 @Injectable()
 export class ProblemService {
   constructor(private readonly neo4jService: Neo4jService) {}
@@ -104,42 +103,31 @@ export class ProblemService {
   }
 
   async recommendProblem(
-    { limit, type, problemId },
+    { limit, type, problemId, company },
     user?: IJwtPayload,
   ): Promise<IProblem[]> {
     let recommendProblemNodes: INode[];
-    if (problemId) {
-      let recommendSimilarProblemNodes: INode[];
-      recommendSimilarProblemNodes = await this.nextRecommendSimilarProblem(
-        user,
-        limit,
-        problemId,
-      );
-      let recommendNewCategoryProblemNodes: INode[];
-      recommendNewCategoryProblemNodes =
-        await this.nextRecommendNewCateogryProblem(user, limit, problemId);
-      recommendProblemNodes = [
-        ...recommendSimilarProblemNodes,
-        ...recommendNewCategoryProblemNodes,
-      ];
-
-      return recommendProblemNodes.map((node) =>
-        new ProblemNode(
-          node[0].properties as IProblemProperty,
-        ).toResponseObject(node[0].identity.low, false, false, node[1]),
-      );
-    } else if (user) {
-      if (type === 'next') {
-        recommendProblemNodes = await this.recommendNextProblem(user, limit);
-      } else if (type == 'less') {
-        recommendProblemNodes = await this.recommendLessProblem(user, limit);
-      } else if (type === 'wrong') {
-        recommendProblemNodes = await this.recommendWrongProblem(user, limit);
-      } else if (type === 'kakao' || type === 'samsung') {
-        recommendProblemNodes = await this.recommendDesiredCompanyProblem(
+    if (user) {
+      if (problemId) {
+        recommendProblemNodes = [
+          ...(await this.nextRecommendSimilarProblem(user, limit, problemId)),
+          ...(await this.nextRecommendNewCateogryProblem(
+            user,
+            limit,
+            problemId,
+          )),
+        ];
+      } else if (type) {
+        let queryDict = {};
+        queryDict['next'] = RECOMMEND_NEXT_PROBLEM;
+        queryDict['less'] = RECOMMEND_LESS_PROBLEM;
+        queryDict['wrong'] = RECOMMEND_WRONG_PROBLEM;
+        console.log(user, type, limit, company);
+        recommendProblemNodes = await this.recommendTypeProblem(
           user,
-          type,
           limit,
+          queryDict[type],
+          company,
         );
       } else {
         recommendProblemNodes = await this.recommendFirstProblem(user, limit);
@@ -354,78 +342,28 @@ export class ProblemService {
     ).records.map((record) => record['_fields']);
     return defaultDatas.filter((data) => data[0].labels);
   }
-
-  private async recommendNextProblem(user, limit): Promise<INode[]> {
-    // const RecentlySolvedProblemNumbers = await this.neo4jService
-    //   .read(GET_RECENT_SOLVED_PROBLEMS, user)
-    //   .then(({ records }) => records);
-    // if (RecentlySolvedProblemNumbers.length == 0) {
-    //   return await this.recommendFirstProblem(user, limit);
-    // }
-
-    // const CYPHER = RecentlySolvedProblemNumbers.map(
-    //   (number) => `
-    //   match (p:PROBLEM {id: ${number['_fields'][0].low}})-[:main_tag]->(c:CATEGORY),
-    //   (u:USER {email: $email, provider: $provider})
-    //   match (p1:PROBLEM)-[:main_tag]->(c)
-    //   where p.level <= p1.level and not (u)-[:solved]->(p1)
-    //   return p1, c
-    //   union
-    //   match(p:PROBLEM {id:${number['_fields'][0].low}})-[:main_tag]->(c:CATEGORY),
-    //   (c:CATEGORY)-[:next]->(c1:CATEGORY), (u:USER {email: $email, provider: $provider})
-    //   match(c1)<-[:main_tag]-(p2:PROBLEM)
-    //   where not (u)-[:solved]->(p2)
-    //   return p2 as p1, c
-    //   `,
-    // ).join(`\nunion \n`);
-    const nextDatas = (
-      await this.neo4jService.read(RECOMMEND_NEXT_PROBLEM, {
-        ...user,
-        limit,
-      })
-    ).records.map((record) => record['_fields']);
-    return nextDatas.filter((data) => data[0].labels);
+  private async recommendTypeProblem(
+    user,
+    limit,
+    query,
+    company,
+  ): Promise<INode[]> {
+    let param = {};
+    if (company) {
+      query = query.replace('// where', 'where');
+      param = { ...user, limit, query, company: company.toUpperCase() };
+    } else {
+      param = { ...user, limit, query };
+    }
+    const Datas = (await this.neo4jService.read(query, param)).records.map(
+      (record) => record['_fields'],
+    );
+    return Datas.filter((data) => data[0].labels);
   }
-
-  private async recommendLessProblem(user, limit): Promise<INode[]> {
-    const lessDatas = (
-      await this.neo4jService.read(RECOMMEND_LESS_PROBLEM, {
-        ...user,
-        limit,
-      })
-    ).records.map((record) => record['_fields']);
-    return lessDatas.filter((data) => data[0].labels);
-  }
-
-  private async recommendWrongProblem(user, limit): Promise<INode[]> {
-    const wrongDatas = (
-      await this.neo4jService.read(RECOMMEND_WRONG_PROBLEM, {
-        ...user,
-        limit,
-      })
-    ).records.map((record) => record['_fields']);
-    return wrongDatas.filter((data) => data[0].labels);
-  }
-
   private async recommendFirstProblem(user, limit): Promise<INode[]> {
     const firstDatas = (
       await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, {
         ...user,
-        limit,
-      })
-    ).records.map((record) => record['_fields']);
-    return firstDatas.filter((data) => data[0].labels);
-  }
-  private async recommendDesiredCompanyProblem(
-    user,
-    company: string,
-    limit,
-  ): Promise<INode[]> {
-    company = company.toUpperCase();
-    const firstDatas = (
-      await this.neo4jService.read(RECOMMEND_DESIREDCOMPANY_PROBLEM, {
-        ...user,
-        company,
         limit,
       })
     ).records.map((record) => record['_fields']);
