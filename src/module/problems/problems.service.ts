@@ -132,14 +132,15 @@ export class ProblemService {
         const checkUserData = (
           await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
         ).records.map((record) => record['_fields']);
-        if (checkUserData === []) {
+        if (checkUserData.length === 0) {
+          recommendProblemNodes = await this.recommendDefaultProblem(limit);
+        } else {
+          console.log(0);
           recommendProblemNodes = await this.recommendFirstProblem(
             user,
             limit,
             company,
           );
-        } else {
-          recommendProblemNodes = await this.recommendDefaultProblem(limit);
         }
       }
     } else {
