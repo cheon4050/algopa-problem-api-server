@@ -122,7 +122,6 @@ export class ProblemService {
         queryDict['next'] = RECOMMEND_NEXT_PROBLEM;
         queryDict['less'] = RECOMMEND_LESS_PROBLEM;
         queryDict['wrong'] = RECOMMEND_WRONG_PROBLEM;
-        console.log(user, type, limit, company);
         recommendProblemNodes = await this.recommendTypeProblem(
           user,
           limit,
@@ -130,7 +129,19 @@ export class ProblemService {
           company,
         );
       } else {
-        recommendProblemNodes = await this.recommendFirstProblem(user, limit);
+        const checkUserData = (
+          await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
+        ).records.map((record) => record['_fields']);
+        if (checkUserData.length === 0) {
+          recommendProblemNodes = await this.recommendDefaultProblem(limit);
+        } else {
+          console.log(0);
+          recommendProblemNodes = await this.recommendFirstProblem(
+            user,
+            limit,
+            company,
+          );
+        }
       }
     } else {
       recommendProblemNodes = await this.recommendDefaultProblem(limit);
@@ -161,10 +172,11 @@ export class ProblemService {
     const edges: IEdgeRelationship[] = datas.filter((data) => data[0].type);
     roadmap.categories = categoryNodes
       .filter((node) => node[0].labels.includes('CATEGORY'))
-      .map((node) =>
-        new CategoryNode(
-          node[0].properties as ICategoryProperty,
-        ).toResponseObject(node[0].identity.low, node[1].low),
+      .map((node, index) =>
+        new CategoryNode({
+          name: node[0].properties.name,
+          order: { low: index + 1, high: 0 },
+        }).toResponseObject(node[0].identity.low, node[1].low),
       );
     roadmap.problems = problemNodes.map((node) =>
       new ProblemNode(node[0].properties).toResponseObject(
@@ -217,6 +229,7 @@ export class ProblemService {
       .then(({ records }) => records.map((record) => record['_fields'][0]))
       .then((edgeDatas) => edgeDatas.filter((data) => data.type));
     const nodes = await Promise.all([problemNodes, categoryNodes, edges]);
+
     roadmap.problems = nodes[0].map((node) =>
       new ProblemNode(node[0].properties).toResponseObject(
         node[0].identity.low,
@@ -225,8 +238,11 @@ export class ProblemService {
         [node[2].properties.name],
       ),
     );
-    roadmap.categories = nodes[1].map((node) =>
-      new CategoryNode(node[2].properties).toResponseObject(
+    roadmap.categories = nodes[1].map((node, index) =>
+      new CategoryNode({
+        name: node[2].properties.name,
+        order: { low: index + 1, high: 0 },
+      }).toResponseObject(
         node[2].identity.low,
         node[4].low,
         node[0],
@@ -360,13 +376,18 @@ export class ProblemService {
     );
     return Datas.filter((data) => data[0].labels);
   }
-  private async recommendFirstProblem(user, limit): Promise<INode[]> {
-    const firstDatas = (
-      await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, {
-        ...user,
-        limit,
-      })
-    ).records.map((record) => record['_fields']);
+  private async recommendFirstProblem(user, limit, company): Promise<INode[]> {
+    let query = RECOMMEND_FIRST_PROBLEM;
+    let param = {};
+    if (company) {
+      query = query.replace('// and', 'and');
+      param = { ...user, limit, query, company: company.toUpperCase() };
+    } else {
+      param = { ...user, limit, query };
+    }
+    const firstDatas = (await this.neo4jService.read(query, param)).records.map(
+      (record) => record['_fields'],
+    );
     return firstDatas.filter((data) => data[0].labels);
   }
   private async nextRecommendSimilarProblem(
