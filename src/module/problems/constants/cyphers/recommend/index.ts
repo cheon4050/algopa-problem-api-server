@@ -27,7 +27,7 @@ with collect(p.level) as plevel, count(p) as  pcount
 with toIntegerList([x in plevel where x > 10|x*1.2]+[x in plevel where x <= 10]) as plist, pcount
 with reduce(total = 0, n IN plist | total + n)/pcount as UserLevel
 match(p:PROBLEM)-[:main_tag]->(c:CATEGORY),(p)-[:sub_tag]-(c2:CATEGORY), (u:USER {email: $email, provider: $provider})
-where not (p)<-[:solved]-(u)
+where not (p)<-[:solved]-(u) // and (p)-[:recommend]-(:COMPANY{name:$company})
 return p, [c.name]+collect(c2.name), p.level, UserLevel
 order by abs(p.level-UserLevel) limit toInteger($limit)
 `;

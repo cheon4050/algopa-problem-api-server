@@ -122,7 +122,6 @@ export class ProblemService {
         queryDict['next'] = RECOMMEND_NEXT_PROBLEM;
         queryDict['less'] = RECOMMEND_LESS_PROBLEM;
         queryDict['wrong'] = RECOMMEND_WRONG_PROBLEM;
-        console.log(user, type, limit, company);
         recommendProblemNodes = await this.recommendTypeProblem(
           user,
           limit,
@@ -130,7 +129,18 @@ export class ProblemService {
           company,
         );
       } else {
-        recommendProblemNodes = await this.recommendFirstProblem(user, limit);
+        const checkUserData = (
+          await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
+        ).records.map((record) => record['_fields']);
+        if (checkUserData === []) {
+          recommendProblemNodes = await this.recommendFirstProblem(
+            user,
+            limit,
+            company,
+          );
+        } else {
+          recommendProblemNodes = await this.recommendDefaultProblem(limit);
+        }
       }
     } else {
       recommendProblemNodes = await this.recommendDefaultProblem(limit);
@@ -360,13 +370,18 @@ export class ProblemService {
     );
     return Datas.filter((data) => data[0].labels);
   }
-  private async recommendFirstProblem(user, limit): Promise<INode[]> {
-    const firstDatas = (
-      await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, {
-        ...user,
-        limit,
-      })
-    ).records.map((record) => record['_fields']);
+  private async recommendFirstProblem(user, limit, company): Promise<INode[]> {
+    let query = RECOMMEND_FIRST_PROBLEM;
+    let param = {};
+    if (company) {
+      query = query.replace('// and', 'and');
+      param = { ...user, limit, query, company: company.toUpperCase() };
+    } else {
+      param = { ...user, limit, query };
+    }
+    const firstDatas = (await this.neo4jService.read(query, param)).records.map(
+      (record) => record['_fields'],
+    );
     return firstDatas.filter((data) => data[0].labels);
   }
   private async nextRecommendSimilarProblem(
