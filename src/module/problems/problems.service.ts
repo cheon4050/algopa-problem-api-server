@@ -172,10 +172,11 @@ export class ProblemService {
     const edges: IEdgeRelationship[] = datas.filter((data) => data[0].type);
     roadmap.categories = categoryNodes
       .filter((node) => node[0].labels.includes('CATEGORY'))
-      .map((node) =>
-        new CategoryNode(
-          node[0].properties as ICategoryProperty,
-        ).toResponseObject(node[0].identity.low, node[1].low),
+      .map((node, index) =>
+        new CategoryNode({
+          name: node[0].properties.name,
+          order: { low: index + 1, high: 0 },
+        }).toResponseObject(node[0].identity.low, node[1].low),
       );
     roadmap.problems = problemNodes.map((node) =>
       new ProblemNode(node[0].properties).toResponseObject(
@@ -228,6 +229,7 @@ export class ProblemService {
       .then(({ records }) => records.map((record) => record['_fields'][0]))
       .then((edgeDatas) => edgeDatas.filter((data) => data.type));
     const nodes = await Promise.all([problemNodes, categoryNodes, edges]);
+
     roadmap.problems = nodes[0].map((node) =>
       new ProblemNode(node[0].properties).toResponseObject(
         node[0].identity.low,
@@ -236,8 +238,11 @@ export class ProblemService {
         [node[2].properties.name],
       ),
     );
-    roadmap.categories = nodes[1].map((node) =>
-      new CategoryNode(node[2].properties).toResponseObject(
+    roadmap.categories = nodes[1].map((node, index) =>
+      new CategoryNode({
+        name: node[2].properties.name,
+        order: { low: index + 1, high: 0 },
+      }).toResponseObject(
         node[2].identity.low,
         node[4].low,
         node[0],
