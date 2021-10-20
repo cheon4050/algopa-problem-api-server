@@ -118,6 +118,12 @@ export class ProblemService {
           )),
         ];
       } else if (type) {
+        const checkUserData = (
+          await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
+        ).records.map((record) => record['_fields']);
+        if (checkUserData.length === 0) {
+          return [];
+        }
         let queryDict = {};
         queryDict['next'] = RECOMMEND_NEXT_PROBLEM;
         queryDict['less'] = RECOMMEND_LESS_PROBLEM;
