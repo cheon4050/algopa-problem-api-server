@@ -1,4 +1,5 @@
 export interface IUserProblemSolvingData {
+  language: string;
   success: boolean;
   isSolved: boolean;
   result: string;
