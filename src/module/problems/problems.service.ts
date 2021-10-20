@@ -141,7 +141,6 @@ export class ProblemService {
         if (checkUserData.length === 0) {
           recommendProblemNodes = await this.recommendDefaultProblem(limit);
         } else {
-          console.log(0);
           recommendProblemNodes = await this.recommendFirstProblem(
             user,
             limit,
