@@ -487,6 +487,7 @@ export class ProblemService {
     id,
   ) {
     const {
+      language,
       success,
       isSolved,
       result,
@@ -496,9 +497,10 @@ export class ProblemService {
     } = Data;
     const CYPHER = `
       match (u:USER{email:$email, provider:$provider}), (p:PROBLEM{id:$id})
-      merge (u)-[r:submit{success:$success, isSolved:$isSolved, result:$result, submitTimestamp:datetime($submitTimestamp),solvedTime:toInteger($solvedTime), executedTime:$executedTime}]->(p)
+      merge (u)-[r:submit{success:$success, isSolved:$isSolved, result:$result, submitTimestamp:datetime($submitTimestamp),solvedTime:toInteger($solvedTime), executedTime:$executedTime, language:$language}]->(p)
       `;
     await this.neo4jService.write(CYPHER, {
+      language,
       id,
       success,
       isSolved,

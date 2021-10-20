@@ -8,6 +8,10 @@ import {
 } from 'class-validator';
 import { IUserProblemSolvingData } from '../interfaces/user-problem-solving-history.interface';
 export class UserSolvingHistoryDto implements IUserProblemSolvingData {
+  @IsString()
+  @IsNotEmpty()
+  language: string;
+
   @IsBoolean()
   @IsNotEmpty()
   success: boolean;
