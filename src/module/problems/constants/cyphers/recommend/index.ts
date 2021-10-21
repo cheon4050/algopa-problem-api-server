@@ -12,22 +12,58 @@ export const RECOMMEND_DEFAULT_PROBLEM = `
 `;
 
 export const GET_RECENT_SOLVED_PROBLEMS = `
-    match(u:USER {email: $email, provider: $provider})-[r:solved]->(p:PROBLEM)
+    call{
+        match(u:USER {email: $email, provider: $provider})-[r:submit]->(p:PROBLEM)
+        where r.isSolved = true
+        return p
+        order by r.submitTimestamp desc limit 10
+    }
+    with distinct p
     return p.id
-    order by r.date desc limit 10
 `;
-
+// 이전 레벨 공식
+// call{
+//     match (p:PROBLEM)-[r:solved]-(u:USER {email: $email, provider: $provider})
+//     return p
+//     order by r.date desc limit 10
+// }
+// with collect(p.level) as plevel, count(p) as  pcount
+// with toIntegerList([x in plevel where x > 10|x*1.2]+[x in plevel where x <= 10]) as plist, pcount
+// with reduce(total = 0, n IN plist | total + n)/pcount as UserLevel
 export const RECOMMEND_FIRST_PROBLEM = `
 call{
-    match (p:PROBLEM)-[r:solved]-(u:USER {email: $email, provider: $provider})
-    return p
-    order by r.date desc limit 10
+    match(p:PROBLEM)<-[r:submit]-(u:USER{email:$email, provider:$provider})
+    where r.isSolved = true
+    with p,u
+    order by r.submitTimestamp desc
+    return distinct p, u limit 20
 }
-with collect(p.level) as plevel, count(p) as  pcount
-with toIntegerList([x in plevel where x > 10|x*1.2]+[x in plevel where x <= 10]) as plist, pcount
-with reduce(total = 0, n IN plist | total + n)/pcount as UserLevel
-match(p:PROBLEM)-[:main_tag]->(c:CATEGORY),(p)-[:sub_tag]-(c2:CATEGORY), (u:USER {email: $email, provider: $provider})
-where not (p)<-[:solved]-(u) // and (p)-[:recommend]-(:COMPANY{name:$company})
+call{
+    with p, u
+    match(p)<-[r:submit]-(u)
+    where r.isSolved = true
+    with p as p1, r, u as u1
+    order by r.submitTimestamp asc limit 1
+    match (p1)<-[r1:submit]-(u1)
+    where r1.submitTimestamp <= r.submitTimestamp
+    with  p1, 1-1.0/count(r1) as fail, r.solvedTime as solvedTime
+    return p1, fail, solvedTime
+}
+call{
+    with p1,fail, solvedTime
+    return
+    case 
+        when solvedTime < 3600 and fail <= 0.5 then p1.level + 2
+        when solvedTime < 3600 or fail <= 0.5 then p1.level + 1
+        when solvedTime >= 3600 and fail > 0.75 then p1.level -2
+        when solvedTime >= 3600 or fail > 0.75 then p1.level -1
+        else p1.level
+    end as result
+}
+with collect(result) as levelList
+with reduce(total = 0,n In levelList|total +n)/size(levelList) as UserLevel
+match(p:PROBLEM)-[:main_tag]->(c:CATEGORY),(p)-[:sub_tag]-(c2:CATEGORY), (u:USER {email: $email, provider:$provider})
+where not (p)<-[:submit{isSolved:true}]-(u)   // and (p)-[:recommend]-(:COMPANY{name:$company})
 return p, [c.name]+collect(c2.name), p.level, UserLevel
 order by abs(p.level-UserLevel) limit toInteger($limit)
 `;
@@ -36,54 +72,103 @@ export const RECOMMEND_NEXT_PROBLEM = `
 match(u:USER {email:$email, provider: $provider})
 call{
     with u
-    match(u)-[r:solved]->(p:PROBLEM)
-    // where (p)-[:recommend]-(:COMPANY{name:$company})
-    return p
-    order by r.date desc limit 10
+    match(p:PROBLEM)<-[r:submit]-(u)
+    where r.isSolved = true
+    with p, u
+    order by r.submitTimestamp desc
+    return distinct p limit 20
 }
 call{
     with p, u
-    match(p)-[r:solved]-(u), (p)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p1:PROBLEM)
-    with p, max(p1.level) as maxlevel, c, u, r
-    where p.level = maxlevel   
-    match (c)-[:next]->(c1:CATEGORY)<-[:main_tag]-(p1:PROBLEM)
-    where not (p1)<-[:solved]-(u) and p1.level <=p.level
-    return p1, r.date as rdate, c1
-    order by abs(p1.level-p.level) limit 2
-    union
-    with p, u
-    match(p)-[r:solved]-(u)
-    where r.try >= 4
-    match(p)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p1:PROBLEM)
-    where p.level > p1.level
-    return p1, r.date as rdate, c as c1
-    order by p1.level desc limit 2
-    union
-    with p, u
-    match(p)-[r:solved]-(u)
-    where r.try < 4
-    match(p)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p1:PROBLEM)
-    where p.level <= p1.level
-    return p1, r.date as rdate, c as c1
-    order by p1.level limit 2
+    match(p)<-[r:submit]-(u)
+    where r.isSolved = true
+    with p as p1, r, u as u1
+    order by r.submitTimestamp asc limit 1
+    match (p1)<-[r1:submit]-(u1)
+    where r1.submitTimestamp <= r.submitTimestamp
+    with  p1, 1-1.0/count(r1) as fail, r.solvedTime as solvedTime
+    return p1, fail, solvedTime
 }
-match(p1)-[:main_tag]-(c1:CATEGORY)
-optional match(p1)-[:sub_tag]-(c2:CATEGORY)
-return distinct p1, [c1.name]+collect(c2.name), rdate
-order by rdate desc limit toInteger($limit)
+call{
+    with p1, u
+    match(p1)-[r:submit]-(u)
+    where r.isSolved = true
+    with p1, u, min(r.submitTimestamp) as Time
+    match (p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
+    with p1, max(p2.level) as maxlevel, c, u, Time
+    where p1.level = maxlevel   
+    match (c)-[:next]->(c1:CATEGORY)<-[:main_tag]-(p2:PROBLEM)
+    where not (p2)<-[:submit{isSolved:true}]-(u) and p2.level <=p1.level
+    return p2, Time, c1
+    order by abs(p2.level-p1.level) limit 2
+    union
+    with p1, u, fail, solvedTime
+    match(p1)-[r:submit]-(u)
+    where r.isSolved = true
+    with p1, u, min(r.submitTimestamp) as Time, fail, solvedTime
+    where fail > 0.75 and solvedTime > 3600
+    match(p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
+    where p1.level > p2.level and not (p2)-[:submit{isSolved:true}]-(u)
+    return p2, Time, c as c1
+    order by p2.level desc limit 2
+    union
+    with p1, u, fail, solvedTime
+    match(p1)-[r:submit]-(u)
+    where r.isSolved = true
+    with p1, u, min(r.submitTimestamp) as Time, fail, solvedTime
+    where fail <= 0.75 or solvedTime <= 3600
+    match(p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
+    where p1.level <= p2.level and not (p2)-[:submit{isSolved:true}]-(u)
+    return p2, Time, c as c1
+    order by p2.level limit 2
+}
+match(p2)-[:main_tag]-(c1:CATEGORY)
+// where (p2)-[:recommend]-(:COMPANY{name:$company})
+optional match(p2)-[:sub_tag]-(c2:CATEGORY)
+with p2, [c1.name]+collect(c2.name) as category, Time
+order by Time desc 
+return distinct p2, category limit toInteger($limit)
 `;
 
 //이전 버전 다음으로 풀면 좋은 문제 추천
-// export const RECOMMEND_NEXT_PROBLEM = `
-//     match (p:PROBLEM {id: $problem_number})-[:main_tag]->(c:CATEGORY), (u:USER {email: $email, provider: $provider})
-//     match (p1:PROBLEM)-[:main_tag]->(c)
-//     where p.level <= p1.level and not (u)-[:solved]->(p1)
-//     return p1
+// match(u:USER {email:$email, provider: $provider})
+// call{
+//     with u
+//     match(u)-[r:solved]->(p:PROBLEM)
+//     // where (p)-[:recommend]-(:COMPANY{name:$company})
+//     return p
+//     order by r.date desc limit 10
+// }
+// call{
+//     with p, u
+//     match(p)-[r:solved]-(u), (p)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p1:PROBLEM)
+//     with p, max(p1.level) as maxlevel, c, u, r
+//     where p.level = maxlevel
+//     match (c)-[:next]->(c1:CATEGORY)<-[:main_tag]-(p1:PROBLEM)
+//     where not (p1)<-[:solved]-(u) and p1.level <=p.level
+//     return p1, r.date as rdate, c1
+//     order by abs(p1.level-p.level) limit 2
 //     union
-//     match(p:PROBLEM {id:$problem_number})-[:main_tag]->(c:CATEGORY),(c:CATEGORY)-[:next]->(c1:CATEGORY), (u:USER {email: $email, provider: $provider})
-//     match(c1)<-[:main_tag]-(p2:PROBLEM)
-//     where not (u)-[:solved]->(p2)
-//     return p2 as p1
+//     with p, u
+//     match(p)-[r:solved]-(u)
+//     where r.try >= 4
+//     match(p)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p1:PROBLEM)
+//     where p.level > p1.level
+//     return p1, r.date as rdate, c as c1
+//     order by p1.level desc limit 2
+//     union
+//     with p, u
+//     match(p)-[r:solved]-(u)
+//     where r.try < 4
+//     match(p)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p1:PROBLEM)
+//     where p.level <= p1.level
+//     return p1, r.date as rdate, c as c1
+//     order by p1.level limit 2
+// }
+// match(p1)-[:main_tag]-(c1:CATEGORY)
+// optional match(p1)-[:sub_tag]-(c2:CATEGORY)
+// return distinct p1, [c1.name]+collect(c2.name), rdate
+// order by rdate desc limit toInteger($limit)
 // `;
 
 //진행률이 낮은 문제 추천
