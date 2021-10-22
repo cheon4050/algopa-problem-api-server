@@ -384,7 +384,6 @@ export class ProblemService {
   }
   private async recommendFirstProblem(user, limit, company): Promise<INode[]> {
     let query = RECOMMEND_FIRST_PROBLEM;
-    console.log(10100000);
     let param = {};
     if (company) {
       query = query.replace('// and', 'and');
@@ -395,7 +394,6 @@ export class ProblemService {
     const firstDatas = (await this.neo4jService.read(query, param)).records.map(
       (record) => record['_fields'],
     );
-    console.log(firstDatas);
     return firstDatas.filter((data) => data[0].labels);
   }
   private async nextRecommendSimilarProblem(
