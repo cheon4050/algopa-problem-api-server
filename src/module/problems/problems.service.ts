@@ -121,7 +121,6 @@ export class ProblemService {
         const checkUserData = (
           await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
         ).records.map((record) => record['_fields']);
-        console.log(checkUserData);
         if (checkUserData.length === 0) {
           return [];
         }
