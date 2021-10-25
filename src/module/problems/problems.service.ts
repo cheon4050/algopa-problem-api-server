@@ -118,10 +118,24 @@ export class ProblemService {
           )),
         ];
       } else if (type) {
+        let param;
+        let query;
+        if (company) {
+          query = GET_RECENT_SOLVED_PROBLEMS.replace('// where', 'where');
+          param = { ...user, company: company.toUpperCase() };
+        } else {
+          param = { ...user };
+        }
         const checkUserData = (
           await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
         ).records.map((record) => record['_fields']);
-        if (checkUserData.length === 0) {
+        if (checkUserData.length === 0 && type === 'next') {
+          recommendProblemNodes = await this.recommendFirstProblem(
+            user,
+            limit,
+            company,
+          );
+        } else if (checkUserData.length === 0) {
           return [];
         }
         let queryDict = {};
@@ -134,6 +148,13 @@ export class ProblemService {
           queryDict[type],
           company,
         );
+        if (recommendProblemNodes.length === 0 && type === 'next') {
+          recommendProblemNodes = await this.recommendFirstProblem(
+            user,
+            limit,
+            company,
+          );
+        }
       } else {
         const checkUserData = (
           await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
