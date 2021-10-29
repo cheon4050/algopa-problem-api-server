@@ -13,8 +13,8 @@ export const RECOMMEND_DEFAULT_PROBLEM = `
 
 export const GET_RECENT_SOLVED_PROBLEMS = `
     call{
-        match(u:USER {email: $email, provider: $provider})-[r:submit]->(p:PROBLEM)
-        where r.isSolved = true
+        match(u:USER {email: $email, provider: $provider})-[r:submit{isSolved:true}]->(p:PROBLEM)
+        // where (p)-[:main_tag]-(:CATEGORY)-[:past]-(:COMPANY{name:$company})
         return p
         order by r.submitTimestamp desc limit 10
     }
@@ -63,7 +63,7 @@ call{
 with collect(result) as levelList
 with reduce(total = 0,n In levelList|total +n)/size(levelList) as UserLevel
 match(p:PROBLEM)-[:main_tag]->(c:CATEGORY),(p)-[:sub_tag]-(c2:CATEGORY), (u:USER {email: $email, provider:$provider})
-where not (p)<-[:submit{isSolved:true}]-(u)   // and (p)-[:recommend]-(:COMPANY{name:$company})
+where not (p)<-[:submit{isSolved:true}]-(u)   // and (p)-[:main_tag]-(:CATEGORY)-[:past]-(:COMPANY{name:$company})
 return p, [c.name]+collect(c2.name), p.level, UserLevel
 order by abs(p.level-UserLevel) limit toInteger($limit)
 `;
@@ -72,8 +72,7 @@ export const RECOMMEND_NEXT_PROBLEM = `
 match(u:USER {email:$email, provider: $provider})
 call{
     with u
-    match(p:PROBLEM)<-[r:submit]-(u)
-    where r.isSolved = true
+    match(p:PROBLEM)<-[r:submit{isSolved:true}]-(u)
     with p, u
     order by r.submitTimestamp desc
     return distinct p limit 20
@@ -123,7 +122,7 @@ call{
     order by p2.level limit 2
 }
 match(p2)-[:main_tag]-(c1:CATEGORY)
-// where (p2)-[:recommend]-(:COMPANY{name:$company})
+// where (p2)-[:main_tag]-(:CATEGORY)-[:past]-(:COMPANY{name:$company})
 optional match(p2)-[:sub_tag]-(c2:CATEGORY)
 with p2, [c1.name]+collect(c2.name) as category, Time
 order by Time desc 
