@@ -391,8 +391,9 @@ export class ProblemService {
     company,
   ): Promise<INode[]> {
     let param = {};
+
     if (company) {
-      query = query.replace('// where', 'where');
+      query = query.replace(/\/\/ and/g, 'and');
       param = { ...user, limit, query, company: company.toUpperCase() };
     } else {
       param = { ...user, limit, query };

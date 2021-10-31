@@ -69,64 +69,76 @@ order by abs(p.level-UserLevel) limit toInteger($limit)
 `;
 //다음으로 풀면 좋은 문제 추천
 export const RECOMMEND_NEXT_PROBLEM = `
-match(u:USER {email:$email, provider: $provider})
 call{
-    with u
-    match(p:PROBLEM)<-[r:submit{isSolved:true}]-(u)
-    with p, u
-    order by r.submitTimestamp desc
-    return distinct p limit 20
-}
-call{
-    with p, u
-    match(p)<-[r:submit]-(u)
-    where r.isSolved = true
-    with p as p1, r, u as u1
-    order by r.submitTimestamp asc limit 1
-    match (p1)<-[r1:submit]-(u1)
-    where r1.submitTimestamp <= r.submitTimestamp
-    with  p1, 1-1.0/count(r1) as fail, r.solvedTime as solvedTime
-    return p1, fail, solvedTime
-}
-call{
-    with p1, u
-    match(p1)-[r:submit]-(u)
-    where r.isSolved = true
-    with p1, u, min(r.submitTimestamp) as Time
-    match (p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
-    with p1, max(p2.level) as maxlevel, c, u, Time
-    where p1.level = maxlevel   
-    match (c)-[:next]->(c1:CATEGORY)<-[:main_tag]-(p2:PROBLEM)
-    where not (p2)<-[:submit{isSolved:true}]-(u) and p2.level <=p1.level
-    return p2, Time, c1
-    order by abs(p2.level-p1.level) limit 2
+    match(u:USER{email:$email, provider:$provider})
+    call{
+        with u
+        match(p:PROBLEM)<-[r:submit{isSolved:true}]-(u)
+        with p, u
+        order by r.submitTimestamp desc
+        return distinct p limit 20
+    }
+    call{
+        with p, u
+        match(p)<-[r:submit]-(u)
+        where r.isSolved = true
+        with p as p1, r, u as u1
+        order by r.submitTimestamp asc limit 1
+        match (p1)<-[r1:submit]-(u1)
+        where r1.submitTimestamp <= r.submitTimestamp
+        with  p1, 1-1.0/count(r1) as fail, r.solvedTime as solvedTime
+        return p1, fail, solvedTime
+    }
+    call{
+        with p1, u
+        match(p1)-[r:submit]-(u)
+        where r.isSolved = true
+        with p1, u, min(r.submitTimestamp) as Time
+        match (p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
+        with p1, max(p2.level) as maxlevel, c, u, Time
+        where p1.level = maxlevel   
+        match (c)-[:next]->(c1:CATEGORY)<-[:main_tag]-(p2:PROBLEM)
+        where not (p2)<-[:submit{isSolved:true}]-(u) and p2.level <=p1.level // and (p2)-[:recommend]-(:COMPANY{name:$company})
+        return p2, Time, c1
+        order by abs(p2.level-p1.level) limit 3
+        union
+        with p1, u, fail, solvedTime
+        match(p1)-[r:submit]-(u)
+        where r.isSolved = true
+        with p1, u, min(r.submitTimestamp) as Time, fail, solvedTime
+        where fail > 0.75 and solvedTime > 3600
+        match(p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
+        where p1.level > p2.level and not (p2)-[:submit{isSolved:true}]-(u) // and (p2)-[:recommend]-(:COMPANY{name:$company})
+        return p2, Time, c as c1
+        order by p2.level desc limit 3
+        union
+        with p1, u, fail, solvedTime
+        match(p1)-[r:submit]-(u)
+        where r.isSolved = true
+        with p1, u, min(r.submitTimestamp) as Time, fail, solvedTime
+        where fail <= 0.75 or solvedTime <= 3600
+        match(p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
+        where p1.level <= p2.level and not (p2)-[:submit{isSolved:true}]-(u) // and (p2)-[:recommend]-(:COMPANY{name:$company})
+        return p2, Time, c as c1
+        order by p2.level limit 3
+    }
+    match(p2)-[:main_tag]-(c1:CATEGORY)
+    optional match(p2)-[:sub_tag]-(c2:CATEGORY)
+    with p2, [c1.name]+collect(c2.name) as category, Time
+    order by Time desc 
+    return distinct p2, category,0 as ra limit toInteger($limit)
     union
-    with p1, u, fail, solvedTime
-    match(p1)-[r:submit]-(u)
-    where r.isSolved = true
-    with p1, u, min(r.submitTimestamp) as Time, fail, solvedTime
-    where fail > 0.75 and solvedTime > 3600
-    match(p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
-    where p1.level > p2.level and not (p2)-[:submit{isSolved:true}]-(u)
-    return p2, Time, c as c1
-    order by p2.level desc limit 2
-    union
-    with p1, u, fail, solvedTime
-    match(p1)-[r:submit]-(u)
-    where r.isSolved = true
-    with p1, u, min(r.submitTimestamp) as Time, fail, solvedTime
-    where fail <= 0.75 or solvedTime <= 3600
-    match(p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
-    where p1.level <= p2.level and not (p2)-[:submit{isSolved:true}]-(u)
-    return p2, Time, c as c1
-    order by p2.level limit 2
+    match(u:USER{email:$email, provider:$provider})
+    match(p2:PROBLEM)
+    where not (p2)-[:submit{isSolved:true}]-(u) // and (p2)-[:recommend]-(:COMPANY{name:$company})
+    match(p2)-[:main_tag]-(c1:CATEGORY)
+    optional match(p2)-[:sub_tag]-(c2:CATEGORY)
+    with p2, [c1.name]+collect(c2.name) as category ,rand() as ra
+    return p2, category,rand() as ra
+    order by ra limit toInteger($limit)
 }
-match(p2)-[:main_tag]-(c1:CATEGORY)
-// where (p2)-[:main_tag]-(:CATEGORY)-[:past]-(:COMPANY{name:$company})
-optional match(p2)-[:sub_tag]-(c2:CATEGORY)
-with p2, [c1.name]+collect(c2.name) as category, Time
-order by Time desc 
 return distinct p2, category limit toInteger($limit)
+
 `;
 
 //이전 버전 다음으로 풀면 좋은 문제 추천
@@ -224,13 +236,12 @@ call{
     order by progress, c.order
 }
 with distinct c, u, UserLevel
-// where (c)-[:past]->(:COMPANY{name:$company})
 call{
     with c, u, UserLevel
     match (p:PROBLEM)-[:main_tag]-(c)
-    where not (p)-[:submit{isSolved:true}]-(u)
+    where not (p)-[:submit{isSolved:true}]-(u) // and (p)-[:recommend]-(:COMPANY{name:$company})
     return p, c as c1
-    order by abs(p.level-UserLevel) limit 3
+    order by abs(p.level-UserLevel) limit 4
 }
 optional match(p)-[:sub_tag]-(c2:CATEGORY)
 return p, [c1.name]+collect(c2.name) limit toInteger($limit)
@@ -371,13 +382,12 @@ with p1, fail, solvedTime, c, UserLevel, u
 with c, sum(fail)/count(fail) as avgFail,sum(solvedTime)/count(solvedTime) as avgTime, UserLevel, u
 order by avgFail desc , avgTime desc
 with c, u, UserLevel
-// where (c)-[:past]->(:COMPANY{name:$company})
 call{
     with c, u, UserLevel
     match (p:PROBLEM)-[:main_tag]-(c)
-    where not (p)-[:submit{isSolved:true}]-(u)
+    where not (p)-[:submit{isSolved:true}]-(u) // and (p)-[:recommend]-(:COMPANY{name:$company})
     return p, c as c1
-    order by abs(p.level-UserLevel) limit 3
+    order by abs(p.level-UserLevel) limit 4
 }
 optional match(p)-[:sub_tag]-(c2:CATEGORY)
 return p, [c1.name]+collect(c2.name) limit toInteger($limit)
