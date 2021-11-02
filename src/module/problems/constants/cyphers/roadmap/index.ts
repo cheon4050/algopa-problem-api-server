@@ -50,7 +50,7 @@ call{
     with collect(c.name) as name
     match(c1:CATEGORY)<-[:main_tag]-(p:PROBLEM)-[:recommend]->(m:ROADMAP{name:"DEFAULT"})
     where not c1.name in name
-    return 1.0 as failureRate, 0.0 as progress, c1 , 0 as solvedCount, count(p) as problemCount
+    return 1.0 as failureRate, 0.0 as progress, c1 as c2 , 0 as solvedCount, count(p) as problemCount
     union
     with u
     match(c:CATEGORY)<-[r:main_tag]-(p:PROBLEM)-[:recommend]->(m:ROADMAP{name:"DEFAULT"}),
@@ -61,21 +61,20 @@ call{
     with solvedCount/tofloat(count(r)) as progress , c, solvedCount, count(p) as problemCount,u
     with c as c1, progress, solvedCount, problemCount, u
     call{
-        with u
-        match(m:ROADMAP{name:"DEFAULT"})<-[:recommend]-(p:PROBLEM)<-[r:submit{isSolved:true}]-(u)
-        with p as p1, r, u
-        with p1, min(r.submitTimestamp) as minTime, u as u1, min(r.solvedTime) as solvedTime
-        match (m:ROADMAP{name:"DEFAULT"})<-[:recommend]-(p1)<-[r1:submit]-(u1)
-        where r1.submitTimestamp <= minTime
-        with  p1, 1-1.0/count(r1) as fail,solvedTime
-        match(p1)-[:main_tag]-(c:CATEGORY)
-        return p1, fail, solvedTime, c
+        with u, c1
+        match(c1)
+        match(c1)-[:main_tag]-(p:PROBLEM)
+        match(u)-[r:submit{isSolved:true}]-(p)-[:recommend]-(m:ROADMAP)
+        with u, c1, count(r) as solvedCount
+        match(c1)-[:main_tag]-(p1:PROBLEM)
+        match(u)-[r:submit]-(p1)-[:recommend]-(m:ROADMAP)
+        return c1 as c2, 1 - toFloat(solvedCount)/count(r) as failureRate
     }
-    with p1, fail, c1, progress, solvedCount, problemCount, u
-    return sum(fail)/count(fail) as failureRate, progress, c1, solvedCount, problemCount
+    with failureRate, c2, progress, solvedCount, problemCount, u
+    return failureRate, progress, c2, solvedCount, problemCount
 }
-return  failureRate, progress, c1, solvedCount, problemCount
-order by c1.order
+return  failureRate, progress, c2, solvedCount, problemCount
+order by c2.order
 `;
 //이전 버전 100RoadMap
 // export const GET_100ROADMAP_CATEGORIES_CYPHER = `
@@ -127,7 +126,7 @@ call{
     with collect(c.name) as name
     match(c1:CATEGORY)<-[:main_tag]-(p:PROBLEM)<-[:recommend]-(m:COMPANY{name:$company})
     where not c1.name in name
-    return 1.0 as failureRate, 0.0 as progress, c1 , 0 as solvedCount, count(p) as problemCount
+    return 1.0 as failureRate, 0.0 as progress, c1 as c2 , 0 as solvedCount, count(p) as problemCount
     union
     with u
     match(c:CATEGORY)<-[r:main_tag]-(p:PROBLEM)<-[:recommend]-(m:COMPANY{name:$company}),
@@ -138,21 +137,19 @@ call{
     with solvedCount/tofloat(count(r)) as progress , c, solvedCount, count(p) as problemCount,u
     with c as c1, progress, solvedCount, problemCount, u
     call{
-        with u
-        match(m:COMPANY{name:$company})-[:recommend]->(p:PROBLEM)<-[r:submit{isSolved:true}]-(u)
-        with p as p1, r, u
-        with p1, min(r.submitTimestamp) as minTime, u as u1, min(r.solvedTime) as solvedTime
-        match (m:COMPANY{name:$company})-[:recommend]->(p1)<-[r1:submit]-(u1)
-        where r1.submitTimestamp <= minTime
-        with  p1, 1-1.0/count(r1) as fail,solvedTime
-        match(p1)-[:main_tag]-(c:CATEGORY)
-        return p1, fail, solvedTime, c
+        with u, c1
+        match(c1)
+        match(c1)-[:main_tag]-(p:PROBLEM)
+        match(u)-[r:submit{isSolved:true}]-(p)-[:recommend]-(m:COMPANY{name:$company})
+        with u, c1, count(r) as solvedCount
+        match(c1)-[:main_tag]-(p1:PROBLEM)
+        match(u)-[r:submit]-(p1)-[:recommend]-(m:COMPANY{name:$company})
+        return c1 as c2, 1 - toFloat(solvedCount)/count(r) as failureRate
     }
-    with p1, fail, c1, progress, solvedCount, problemCount, u
-    return sum(fail)/count(fail) as failureRate, progress, c1, solvedCount, problemCount
+    return failureRate, progress, c2, solvedCount, problemCount
 }
-return  failureRate, progress, c1, solvedCount, problemCount
-order by c1.order
+return  failureRate, progress, c2, solvedCount, problemCount
+order by c2.order
 `;
 //이전 버전 기업 로드맵
 // export const GET_COMPANY_ROADMAP_CATEGORIES_CYPHER = `
