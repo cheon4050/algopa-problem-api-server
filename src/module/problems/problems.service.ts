@@ -381,6 +381,7 @@ export class ProblemService {
       query = RECOMMEND_DEFAULT_PROBLEM.replace('//-', '-');
       param = { limit };
     }
+    console.log(query);
     const defaultDatas = (
       await this.neo4jService.read(query, param)
     ).records.map((record) => record['_fields']);
