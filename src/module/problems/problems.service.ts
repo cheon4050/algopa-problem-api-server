@@ -143,8 +143,7 @@ export class ProblemService {
           company,
         );
         if (recommendProblemNodes.length === 0 && type === 'next') {
-          recommendProblemNodes = await this.recommendFirstProblem(
-            user,
+          recommendProblemNodes = await this.recommendDefaultProblem(
             limit,
             company,
           );
