@@ -6,8 +6,9 @@ CALL{
     where p.level <= 10
     return p limit 1
 }
-match(c2:CATEGORY)-[:sub_tag]-(p)//-[:recommend]-(:ROADMAP)
+match(c)-[:main_tag]-(p)//-[:recommend]-(:ROADMAP)
 // where (p)-[:recommend]-(:COMPANY{name:$company})
+optional match(c2:CATEGORY)-[:sub_tag]-(p)
 return p, [c.name]+collect(c2.name), rand() as ra 
 order by ra limit toInteger($limit)
 `;
