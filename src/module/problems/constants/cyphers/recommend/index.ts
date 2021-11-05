@@ -1,14 +1,15 @@
 export const RECOMMEND_DEFAULT_PROBLEM = `
-    match (c:CATEGORY)
-    CALL{
-        with c
-        match(c)<-[:main_tag]-(p:PROBLEM)
-        where p.level <= 10
-        return p limit 1
-    }
-    match(p)-[:sub_tag]-(c2:CATEGORY)
-    return p, [c.name]+collect(c2.name), rand() as ra 
-    order by ra limit toInteger($limit)
+match (c:CATEGORY)
+CALL{
+    with c
+    match(c)<-[:main_tag]-(p:PROBLEM)
+    where p.level <= 10
+    return p limit 1
+}
+match(c2:CATEGORY)-[:sub_tag]-(p)//-[:recommend]-(:ROADMAP)
+// where (p)-[:recommend]-(:COMPANY{name:$company})
+return p, [c.name]+collect(c2.name), rand() as ra 
+order by ra limit toInteger($limit)
 `;
 
 export const GET_RECENT_SOLVED_PROBLEMS = `
@@ -106,7 +107,7 @@ call{
         match(p1)-[r:submit]-(u)
         where r.isSolved = true
         with p1, u, min(r.submitTimestamp) as Time, fail, solvedTime
-        where fail > 0.75 and solvedTime > 3600
+        where fail > 0.75 or solvedTime > 3600
         match(p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
         where p1.level > p2.level and not (p2)-[:submit{isSolved:true}]-(u) // and (p2)-[:recommend]-(:COMPANY{name:$company})
         return p2, Time, c as c1
@@ -116,7 +117,7 @@ call{
         match(p1)-[r:submit]-(u)
         where r.isSolved = true
         with p1, u, min(r.submitTimestamp) as Time, fail, solvedTime
-        where fail <= 0.75 or solvedTime <= 3600
+        where fail <= 0.75 and solvedTime <= 3600
         match(p1)-[:main_tag]->(c:CATEGORY), (c)<-[:main_tag]-(p2:PROBLEM)
         where p1.level <= p2.level and not (p2)-[:submit{isSolved:true}]-(u) // and (p2)-[:recommend]-(:COMPANY{name:$company})
         return p2, Time, c as c1
