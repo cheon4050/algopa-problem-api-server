@@ -129,13 +129,7 @@ export class ProblemService {
         const checkUserData = (
           await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
         ).records.map((record) => record['_fields']);
-        if (checkUserData.length === 0 && type === 'next') {
-          recommendProblemNodes = await this.recommendFirstProblem(
-            user,
-            limit,
-            company,
-          );
-        } else if (checkUserData.length === 0) {
+        if (checkUserData.length === 0 && type !== 'next') {
           return [];
         }
         let queryDict = {};
@@ -378,9 +372,18 @@ export class ProblemService {
         .join('\nwith u\n');
     await this.neo4jService.write(CYPHER, { email, provider });
   }
-  private async recommendDefaultProblem(limit): Promise<INode[]> {
+  private async recommendDefaultProblem(limit, company?): Promise<INode[]> {
+    let param = {};
+    let query;
+    if (company) {
+      query = RECOMMEND_DEFAULT_PROBLEM.replace('// where', 'where');
+      param = { limit, company: company.toUpperCase() };
+    } else {
+      query = RECOMMEND_DEFAULT_PROBLEM.replace('//-', '-');
+      param = { limit };
+    }
     const defaultDatas = (
-      await this.neo4jService.read(RECOMMEND_DEFAULT_PROBLEM, { limit })
+      await this.neo4jService.read(query, param)
     ).records.map((record) => record['_fields']);
     return defaultDatas.filter((data) => data[0].labels);
   }
