@@ -101,14 +101,21 @@ Software Maestro 12기 LIMO팀(이종아, 고동천, 박효진) 서비스 `알�
    추천 타입에 맞는 문제 리스트들을 가져오는 기능입니다.
 
 3. [**Get User History**](src/services/problems/README.md#GET-User-History): `GET /problems/v1/history`
+
    유저 풀이이력을 가져오는 기능입니다.
+
 4. [**GET Problem Testcase**](src/services/problems/README.md#GET-Problem-Testcase): `GET /problems/v1/case`
+
    문제의 테스트케이스를 가져오는 기능입니다.
+
 5. [**GET Problem Info**](src/services/problems/README.md#GET-Problem-Info): `GET /problems/v1/info`
+
    문제의 정보를 가져오는 기능입니다.
+
 6. [**POST Problem Solving History**](src/services/problems/README.md#POST-Problem-Solving-History): `POST /problems/v1/history`
    사용자가 문제를 푼 데이터를 저장하는 기능입니다.
 7. [**POST User Data**](src/services/problems/README.md#POST-User-Data): `POST /problems/v1/initial/history`
+
    유저의 회원가입 정보를 저장하는 기능입니다.
 
 [**Problem Server**](lambda/README.md)는 AWS Lambda 를 사용하여 배포/사용됩니다.
