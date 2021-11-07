@@ -118,8 +118,6 @@ Software Maestro 12기 LIMO팀(이종아, 고동천, 박효진) 서비스 `알�
 
    유저의 회원가입 정보를 저장하는 기능입니다.
 
-[**Problem Server**](lambda/README.md)는 AWS Lambda 를 사용하여 배포/사용됩니다.
-
 ## 레포지토리 실행 방법
 
 ### Development
