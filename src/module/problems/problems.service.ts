@@ -142,7 +142,6 @@ export class ProblemService {
           queryDict[type],
           company,
         );
-        console.log(recommendProblemNodes);
         if (recommendProblemNodes.length === 0 && type === 'next') {
           recommendProblemNodes = await this.recommendDefaultProblem(
             limit,
@@ -382,7 +381,6 @@ export class ProblemService {
       query = RECOMMEND_DEFAULT_PROBLEM.replace('//-', '-');
       param = { limit };
     }
-    console.log(query);
     const defaultDatas = (
       await this.neo4jService.read(query, param)
     ).records.map((record) => record['_fields']);
