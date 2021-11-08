@@ -113,9 +113,15 @@ Software Maestro 12기 LIMO팀(이종아, 고동천, 박효진) 서비스 `알�
    문제의 정보를 가져오는 기능입니다.
 
 6. [**POST Problem Solving History**](src/services/problems/README.md#POST-Problem-Solving-History): `POST /problems/v1/history`
+<<<<<<< HEAD
 
    사용자가 문제를 푼 데이터를 저장하는 기능입니다.
 
+=======
+   
+   사용자가 문제를 푼 데이터를 저장하는 기능입니다.
+   
+>>>>>>> 3c91aa5eaf26cab0c8bbe89a1b767add4a57547c
 7. [**POST User Data**](src/services/problems/README.md#POST-User-Data): `POST /problems/v1/initial/history`
 
    유저의 회원가입 정보를 저장하는 기능입니다.
