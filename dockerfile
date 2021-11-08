@@ -20,4 +20,4 @@ ADD tsconfig.build.json /app/tsconfig.build.json
 ADD src /app/src
 RUN npm run build
 
-CMD [ "npm", "start"]
+CMD [ "npm", "run", "start:prod"]

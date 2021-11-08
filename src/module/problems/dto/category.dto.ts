@@ -9,12 +9,14 @@ export class CategoryDto implements ICategory {
       this.order = category.order;
       this.problemCount = category.problemCount;
 
-      if (category.failureRate && category.progressRate) {
+      if (category.failureRate !== undefined) {
         this.failureRate = category.failureRate;
+      }
+      if (category.progressRate !== undefined) {
         this.progressRate = category.progressRate;
       }
 
-      if (category.solvedCount) {
+      if (category.solvedCount !== undefined) {
         this.solvedCount = category.solvedCount;
       }
     }

@@ -9,7 +9,7 @@ import { IProblemInfo } from '../interfaces/problem.interface';
 
 export class ProblemInfoDto implements IProblemInfo {
   constructor(problem: IProblemInfo) {
-    this.number = problem.number;
+    this.id = problem.id;
     this.level = problem.level;
     this.link = problem.link;
     this.title = problem.title;
@@ -19,7 +19,7 @@ export class ProblemInfoDto implements IProblemInfo {
 
   @IsNumber()
   @IsNotEmpty()
-  number: number;
+  id: number;
 
   @IsNumber()
   @IsNotEmpty()

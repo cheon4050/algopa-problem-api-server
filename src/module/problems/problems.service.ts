@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Neo4jService } from 'nest-neo4j/dist';
 import { IJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { GET_USER_HISTORY } from './constants/cyphers/history';
+import { EdgeDto } from './dto/edge.dto';
 import {
   CREATE_SOLVED_RELATION,
   GET_ALL_PROBLEMS,
@@ -14,13 +15,25 @@ import {
   RECOMMEND_FIRST_PROBLEM,
   RECOMMEND_LESS_PROBLEM,
   RECOMMEND_WRONG_PROBLEM,
+  RECOMMEND_DESIREDCOMPANY_PROBLEM,
+  NEXT_RECOMMEND_SIMILAR_PROBLEM,
+  NEXT_RECOMMEND_NEW_CATEGORY_PROBLEM,
+  RECOMMEND_NEXT_PROBLEM,
 } from './constants/cyphers/recommend';
 import {
+  GET_100ROADMAP_CATEGORIES_CYPHER,
+  GET_100ROADMAP_EDGES_CYPHER,
+  GET_100ROADMAP_PROBLEMS_CYPHER,
   GET_DEFAULT_ROADMAP_CYPHER,
   GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
   GET_ROADMAP_CATEGORIES_CYPHER,
   GET_ROADMAP_EDGES_CYPHER,
   GET_ROADMAP_PROBLEMS_CYPHER,
+  GET_COMPANY_ROADMAP_CATEGORIES_CYPHER,
+  GET_COMPANY_ROADMAP_EDGES_CYPHER,
+  GET_COMPANY_ROADMAP_PROBLEMS_CYPHER,
+  GET_COMPANY_DEFAULT_ROADMAP_CYPHER,
+  GET_COMPANY_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
 } from './constants/cyphers/roadmap';
 import { CREATE_USER } from './constants/user';
 import { Edge } from './entities/edge/edge';
@@ -28,6 +41,7 @@ import { CategoryNode } from './entities/nodes/category.node';
 import { ProblemNode } from './entities/nodes/problem.node';
 import { ICreateSolvedRelations } from './interfaces/create-solved-relations-request.dto';
 import { IEdgeRelationship } from './interfaces/edge-relationship.interface';
+import { ITestcase } from './interfaces/problem-testcase.interface';
 import {
   ICategoryProperty,
   INode,
@@ -39,27 +53,151 @@ import {
   ISolvedProblem,
 } from './interfaces/problem.interface';
 import { IRoadMap } from './interfaces/roadmap.interface';
-import axios from 'axios';
-import { load } from 'cheerio';
-
+import { IUserProblemSolvingData } from './interfaces/user-problem-solving-history.interface';
 @Injectable()
 export class ProblemService {
   constructor(private readonly neo4jService: Neo4jService) {}
 
-  async getDefaultRoadmap(): Promise<IRoadMap> {
+  async getRoadmap(type, user?: IJwtPayload): Promise<IRoadMap> {
+    let roadmap: IRoadMap = {
+      problems: [],
+      categories: [],
+      edges: [],
+    };
+    let query;
+    let param;
+    if (user) {
+      if (type) {
+        query = [
+          GET_COMPANY_ROADMAP_PROBLEMS_CYPHER,
+          GET_COMPANY_ROADMAP_CATEGORIES_CYPHER,
+          GET_COMPANY_ROADMAP_EDGES_CYPHER,
+        ];
+        param = { ...user, company: type.toUpperCase() };
+      } else {
+        query = [
+          GET_100ROADMAP_PROBLEMS_CYPHER,
+          GET_100ROADMAP_CATEGORIES_CYPHER,
+          GET_100ROADMAP_EDGES_CYPHER,
+        ];
+        param = { ...user };
+      }
+      roadmap = await this.getUserRoadmap(query, param);
+    } else {
+      if (type) {
+        query = [
+          GET_COMPANY_DEFAULT_ROADMAP_CYPHER,
+          GET_COMPANY_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
+        ];
+        param = { company: type.toUpperCase() };
+        roadmap = await this.getDefaultRoadmap(query, param);
+      } else {
+        query = [
+          GET_DEFAULT_ROADMAP_CYPHER,
+          GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER,
+        ];
+        roadmap = await this.getDefaultRoadmap(query);
+      }
+    }
+    return roadmap;
+  }
+  // 추천
+  async recommendProblem(
+    { limit, type, problemId, company },
+    user?: IJwtPayload,
+  ): Promise<IProblem[]> {
+    let recommendProblemNodes: INode[];
+    if (user) {
+      if (problemId) {
+        recommendProblemNodes = [
+          ...(await this.nextRecommendSimilarProblem(user, limit, problemId)),
+          ...(await this.nextRecommendNewCateogryProblem(
+            user,
+            limit,
+            problemId,
+          )),
+        ];
+      } else if (type) {
+        let param;
+        let query;
+        if (company) {
+          query = GET_RECENT_SOLVED_PROBLEMS.replace('// where', 'where');
+          param = { ...user, company: company.toUpperCase() };
+        } else {
+          param = { ...user };
+        }
+        const checkUserData = (
+          await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
+        ).records.map((record) => record['_fields']);
+        if (checkUserData.length === 0 && type !== 'next') {
+          return [];
+        }
+        let queryDict = {};
+        queryDict['next'] = RECOMMEND_NEXT_PROBLEM;
+        queryDict['less'] = RECOMMEND_LESS_PROBLEM;
+        queryDict['wrong'] = RECOMMEND_WRONG_PROBLEM;
+        recommendProblemNodes = await this.recommendTypeProblem(
+          user,
+          limit,
+          queryDict[type],
+          company,
+        );
+        console.log(recommendProblemNodes);
+        if (recommendProblemNodes.length === 0 && type === 'next') {
+          recommendProblemNodes = await this.recommendDefaultProblem(
+            limit,
+            company,
+          );
+        }
+      } else {
+        const checkUserData = (
+          await this.neo4jService.read(GET_RECENT_SOLVED_PROBLEMS, { ...user })
+        ).records.map((record) => record['_fields']);
+        if (checkUserData.length === 0) {
+          recommendProblemNodes = await this.recommendDefaultProblem(limit);
+        } else {
+          recommendProblemNodes = await this.recommendFirstProblem(
+            user,
+            limit,
+            company,
+          );
+        }
+      }
+    } else {
+      recommendProblemNodes = await this.recommendDefaultProblem(limit);
+    }
+    return recommendProblemNodes.map((node) =>
+      new ProblemNode(node[0].properties as IProblemProperty).toResponseObject(
+        node[0].identity.low,
+        false,
+        false,
+        node[1],
+      ),
+    );
+  }
+  async getDefaultRoadmap(query, param?): Promise<IRoadMap> {
     const roadmap: IRoadMap = {
       problems: [],
       categories: [],
       edges: [],
     };
-
     const datas = await this.neo4jService
-      .read(GET_DEFAULT_ROADMAP_CYPHER)
+      .read(query[0], param)
       .then(({ records }) => records.map((record) => record['_fields']));
     const problemNodes: INode[] = await this.neo4jService
-      .read(GET_DEFAULT_ROADMAP_PROBLEMS_CYPHER)
+      .read(query[1], param)
       .then(({ records }) => records.map((record) => record['_fields']))
       .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
+    const categoryNodes: INode[] = datas.filter((data) => data[0].labels);
+    const edges: IEdgeRelationship[] = datas.filter((data) => data[0].type);
+    roadmap.categories = categoryNodes
+      .filter((node) => node[0].labels.includes('CATEGORY'))
+      .map((node, index) =>
+        new CategoryNode({
+          name: node[0].properties.name,
+          order: { low: index + 1, high: 0 },
+        }).toResponseObject(node[0].identity.low, node[1].low),
+      );
     roadmap.problems = problemNodes.map((node) =>
       new ProblemNode(node[0].properties).toResponseObject(
         node[0].identity.low,
@@ -68,32 +206,51 @@ export class ProblemService {
         [node[1].properties.name],
       ),
     );
-    const nodes: INode[] = datas.filter((data) => data[0].labels);
-    const edges: IEdgeRelationship[] = datas.filter((data) => data[0].type);
-    roadmap.categories = nodes
-      .filter((node) => node[0].labels.includes('Category'))
-      .map((node) =>
-        new CategoryNode(
-          node[0].properties as ICategoryProperty,
-        ).toResponseObject(node[0].identity.low, node[1].low),
-      );
     roadmap.edges = edges.map((edge) => new Edge(edge[0]).toResponseObject());
+    let categoryorder = categoryNodes.map((node) => {
+      return { id: node[0].identity.low, order: node[0].properties.order.low };
+    });
+    let nextedge = categoryorder.sort(function (a, b) {
+      if (a.order > b.order) {
+        return 1;
+      }
+      if (a.order < b.order) {
+        return -1;
+      }
+      return 0;
+    });
+    for (let i = 0; i < nextedge.length - 1; i++) {
+      roadmap.edges.push({
+        from: nextedge[i].id,
+        to: nextedge[i + 1].id,
+        type: 'next',
+      });
+    }
+
     return roadmap;
   }
-
-  async getRoadMap(user: IJwtPayload): Promise<IRoadMap> {
+  async getUserRoadmap(query, param): Promise<IRoadMap> {
     const roadmap: IRoadMap = {
       problems: [],
       categories: [],
       edges: [],
     };
 
-    const problemNodes: INode[] = await this.neo4jService
-      .read(GET_ROADMAP_PROBLEMS_CYPHER, user)
+    const problemNodes: Promise<INode[]> = this.neo4jService
+      .read(query[0], param)
       .then(({ records }) => records.map((record) => record['_fields']))
       .then((problemDatas) => problemDatas.filter((data) => data[0].labels));
+    const categoryNodes: Promise<INode[]> = this.neo4jService
+      .read(query[1], param)
+      .then(({ records }) => records.map((record) => record['_fields']))
+      .then((categoryDatas) => categoryDatas.filter((data) => data[2].labels));
+    const edges: Promise<IEdgeRelationship[]> = this.neo4jService
+      .read(query[2], param)
+      .then(({ records }) => records.map((record) => record['_fields'][0]))
+      .then((edgeDatas) => edgeDatas.filter((data) => data.type));
+    const nodes = await Promise.all([problemNodes, categoryNodes, edges]);
 
-    roadmap.problems = problemNodes.map((node) =>
+    roadmap.problems = nodes[0].map((node) =>
       new ProblemNode(node[0].properties).toResponseObject(
         node[0].identity.low,
         node[1],
@@ -101,13 +258,11 @@ export class ProblemService {
         [node[2].properties.name],
       ),
     );
-
-    const categoryNodes: INode[] = await this.neo4jService
-      .read(GET_ROADMAP_CATEGORIES_CYPHER, user)
-      .then(({ records }) => records.map((record) => record['_fields']))
-      .then((categoryDatas) => categoryDatas.filter((data) => data[2].labels));
-    roadmap.categories = categoryNodes.map((node) =>
-      new CategoryNode(node[2].properties).toResponseObject(
+    roadmap.categories = nodes[1].map((node, index) =>
+      new CategoryNode({
+        name: node[2].properties.name,
+        order: { low: index + 1, high: 0 },
+      }).toResponseObject(
         node[2].identity.low,
         node[4].low,
         node[0],
@@ -122,44 +277,27 @@ export class ProblemService {
         }) === i
       );
     });
-
-    const edges: IEdgeRelationship[] = await this.neo4jService
-      .read(GET_ROADMAP_EDGES_CYPHER)
-      .then(({ records }) => records.map((record) => record['_fields'][0]))
-      .then((edgeDatas) => edgeDatas.filter((data) => data.type));
-
-    roadmap.edges = edges.map((edge) => new Edge(edge).toResponseObject());
-
-    return roadmap;
-  }
-
-  async recommendProblem(
-    { limit, type },
-    user?: IJwtPayload,
-  ): Promise<IProblem[]> {
-    let recommendProblemNodes: INode[];
-
-    if (user) {
-      if (type === 'next') {
-        recommendProblemNodes = await this.recommendNextProblem(user, limit);
-      } else if (type == 'less') {
-        recommendProblemNodes = await this.recommendLessProblem(user, limit);
-      } else if (type === 'wrong') {
-        recommendProblemNodes = await this.recommendWrongProblem(user, limit);
-      } else {
-        recommendProblemNodes = await this.recommendFirstProblem(user, limit);
+    let categoryorder = (await categoryNodes).map((node) => {
+      return { id: node[2].identity.low, order: node[2].properties.order.low };
+    });
+    roadmap.edges = nodes[2].map((edge) => new Edge(edge).toResponseObject());
+    let nextedge = categoryorder.sort(function (a, b) {
+      if (a.order > b.order) {
+        return 1;
       }
-    } else {
-      recommendProblemNodes = await this.recommendDefaultProblem(limit);
+      if (a.order < b.order) {
+        return -1;
+      }
+      return 0;
+    });
+    for (let i = 0; i < nextedge.length - 1; i++) {
+      roadmap.edges.push({
+        from: nextedge[i].id,
+        to: nextedge[i + 1].id,
+        type: 'next',
+      });
     }
-    return recommendProblemNodes.map((node) =>
-      new ProblemNode(node[0].properties as IProblemProperty).toResponseObject(
-        node[0].identity.low,
-        false,
-        false,
-        [node[1].properties.name],
-      ),
-    );
+    return roadmap;
   }
 
   async getUserHistory(user: IJwtPayload): Promise<ISolvedProblem[]> {
@@ -220,79 +358,100 @@ export class ProblemService {
   async createSolvedRelations(solvedProblemsData: ICreateSolvedRelations) {
     const { email, provider, attempts } = solvedProblemsData;
     await this.neo4jService.write(CREATE_USER, { email, provider });
+
     const CYPHER =
       CREATE_SOLVED_RELATION +
       attempts
         .map(
-          (attempt) => `
-    match(p:Problem {id: ${attempt.problemId}})
-    merge (u)-[:Solved {try: ${attempt.attemptCount}, date: date("${attempt.time}")}]->(p)
+          (attempt) =>
+            `
+    match(p:PROBLEM {id: ${attempt.problemId}})
+    merge (u)-[:solved {try: ${attempt.attemptCount}, date: date("${attempt.time}")}]->(p)
     `,
         )
         .join('\nwith u\n');
     await this.neo4jService.write(CYPHER, { email, provider });
   }
-  private async recommendDefaultProblem(limit): Promise<INode[]> {
-    const defaultDatas = (
-      await this.neo4jService.read(RECOMMEND_DEFAULT_PROBLEM)
-    ).records.map((record) => record['_fields']);
-    return defaultDatas.filter((data) => data[0].labels).slice(0, limit);
-  }
-
-  private async recommendNextProblem(user, limit): Promise<INode[]> {
-    const RecentlySolvedProblemNumbers = await this.neo4jService
-      .read(GET_RECENT_SOLVED_PROBLEMS, user)
-      .then(({ records }) => records);
-    if (RecentlySolvedProblemNumbers.length == 0) {
-      return await this.recommendFirstProblem(user, limit);
+  private async recommendDefaultProblem(limit, company?): Promise<INode[]> {
+    let param = {};
+    let query;
+    if (company) {
+      query = RECOMMEND_DEFAULT_PROBLEM.replace('// where', 'where');
+      param = { limit, company: company.toUpperCase() };
+    } else {
+      query = RECOMMEND_DEFAULT_PROBLEM.replace('//-', '-');
+      param = { limit };
     }
+    console.log(query);
+    const defaultDatas = (
+      await this.neo4jService.read(query, param)
+    ).records.map((record) => record['_fields']);
+    return defaultDatas.filter((data) => data[0].labels);
+  }
+  private async recommendTypeProblem(
+    user,
+    limit,
+    query,
+    company,
+  ): Promise<INode[]> {
+    let param = {};
 
-    const CYPHER = RecentlySolvedProblemNumbers.map(
-      (number) => `
-      match (p:Problem {id: ${number['_fields'][0].low}})-[:IN]->(c:Category),
-      (u:User {email: $email, provider: $provider})
-      match (p1:Problem)-[:IN]->(c)
-      where p.level <= p1.level and not (u)-[:Solved]->(p1)
-      return p1, c
-      union
-      match(p:Problem {id:${number['_fields'][0].low}})-[:IN]->(c:Category),
-      (c:Category)-[:next]->(c1:Category), (u:User {email: $email, provider: $provider})
-      match(c1)<-[:IN]-(p2:Problem)
-      where not (u)-[:Solved]->(p2)
-      return p2 as p1, c
-      `,
-    ).join(`\nunion \n`);
-    const nextDatas = (
-      await this.neo4jService.read(CYPHER, {
+    if (company) {
+      query = query.replace(/\/\/ and/g, 'and');
+      param = { ...user, limit, query, company: company.toUpperCase() };
+    } else {
+      param = { ...user, limit, query };
+    }
+    const Datas = (await this.neo4jService.read(query, param)).records.map(
+      (record) => record['_fields'],
+    );
+    return Datas.filter((data) => data[0].labels);
+  }
+  private async recommendFirstProblem(user, limit, company): Promise<INode[]> {
+    let query = RECOMMEND_FIRST_PROBLEM;
+    let param = {};
+    if (company) {
+      query = query.replace('// and', 'and');
+      param = { ...user, limit, query, company: company.toUpperCase() };
+    } else {
+      param = { ...user, limit, query };
+    }
+    const firstDatas = (await this.neo4jService.read(query, param)).records.map(
+      (record) => record['_fields'],
+    );
+    return firstDatas.filter((data) => data[0].labels);
+  }
+  private async nextRecommendSimilarProblem(
+    user,
+    limit,
+    problemId,
+  ): Promise<INode[]> {
+    const datas = (
+      await this.neo4jService.read(NEXT_RECOMMEND_SIMILAR_PROBLEM, {
         ...user,
+        limit,
+        id: problemId,
       })
     ).records.map((record) => record['_fields']);
-    return nextDatas.filter((data) => data[0].labels).slice(0, limit);
+    return datas.filter((data) => data[0].labels);
   }
-
-  private async recommendLessProblem(user, limit): Promise<INode[]> {
-    const lessDatas = (
-      await this.neo4jService.read(RECOMMEND_LESS_PROBLEM, user)
+  private async nextRecommendNewCateogryProblem(
+    user,
+    limit,
+    problemId,
+  ): Promise<INode[]> {
+    const datas = (
+      await this.neo4jService.read(NEXT_RECOMMEND_NEW_CATEGORY_PROBLEM, {
+        ...user,
+        limit,
+        id: problemId,
+      })
     ).records.map((record) => record['_fields']);
-    return lessDatas.filter((data) => data[0].labels).slice(0, limit);
-  }
-
-  private async recommendWrongProblem(user, limit): Promise<INode[]> {
-    const wrongDatas = (
-      await this.neo4jService.read(RECOMMEND_WRONG_PROBLEM, user)
-    ).records.map((record) => record['_fields']);
-    return wrongDatas.filter((data) => data[0].labels).slice(0, limit);
-  }
-
-  private async recommendFirstProblem(user, limit): Promise<INode[]> {
-    const firstDatas = (
-      await this.neo4jService.read(RECOMMEND_FIRST_PROBLEM, user)
-    ).records.map((record) => record['_fields']);
-    return firstDatas.filter((data) => data[0].labels).slice(0, limit);
+    return datas.filter((data) => data[0].labels);
   }
   async getProblemInfo(id): Promise<IProblemInfo> {
     const CYPHER = `
-    match(p:Problem{id: $id})-[:IN]->(c:Category)
+    match(p:PROBLEM{id: $id})-[:main_tag]->(c:CATEGORY)
     return p, c
     `;
     const data = (
@@ -301,41 +460,24 @@ export class ProblemService {
       })
     ).records.map((record) => record['_fields'])[0];
     const problem: IProblemInfo = {
-      number: data[0].properties.id.low,
+      id: data[0].properties.id.low,
       level: data[0].properties.level.low,
       link: data[0].properties.link,
       title: data[0].properties.title,
       categories: [data[1].properties.name],
-      contentHTML: '',
+      contentHTML: data[0].properties.contentHtml,
     };
-    const getHtml = async () => {
-      try {
-        return await axios.get(`https://www.acmicpc.net/problem/${id}`);
-      } catch (error) {}
-    };
-    const html = await getHtml()
-      .then((html) => {
-        const $ = load(html.data);
-        const $bodyList = $('body')
-          .children('div.wrapper')
-          .children('div.container.content');
-        return $bodyList.html();
-      })
-      .then((data) =>
-        data.replace(/href=\"\//g, 'href="https://www.acmicpc.net/'),
-      );
-    problem.contentHTML =
-      '<div class="container content">' + html.toString() + '</div>';
+
     return problem;
   }
   async checkProblem(id): Promise<boolean> {
     const CYPHER = `
-    match(p:Problem{id: $id})
+    match(p:PROBLEM{id: $id})
     return p
     `;
     const checkData = (
       await this.neo4jService.read(CYPHER, {
-        id: id,
+        id,
       })
     ).records.map((record) => record);
     if (checkData.length === 0) {
@@ -343,5 +485,75 @@ export class ProblemService {
     } else {
       return false;
     }
+  }
+  async getProblemTestcase(id): Promise<ITestcase[]> {
+    let testcase: ITestcase[] = [];
+    const CYPHER = `match (p:PROBLEM{id:$id})
+    return p.input, p.output
+    `;
+    const data = (
+      await this.neo4jService.read(CYPHER, {
+        id: id,
+      })
+    ).records.map((record) => record['_fields'])[0];
+    const input = data[0];
+    const answer = data[1];
+    for (let i = 0; i < input.length; i++) {
+      testcase.push({
+        input: input[i],
+        answer: answer[i],
+      });
+    }
+    return testcase;
+  }
+  async postUserSolvingData(
+    Data: IUserProblemSolvingData,
+    user: IJwtPayload,
+    id,
+  ) {
+    const {
+      language,
+      success,
+      isSolved,
+      result,
+      submitTimestamp,
+      solvedTime,
+      executedTime,
+    } = Data;
+    const CYPHER = `
+      match (u:USER{email:$email, provider:$provider}), (p:PROBLEM{id:$id})
+      merge (u)-[r:submit{success:$success, isSolved:$isSolved, result:$result, submitTimestamp:datetime($submitTimestamp),solvedTime:toInteger($solvedTime), executedTime:$executedTime, language:$language}]->(p)
+      `;
+    await this.neo4jService.write(CYPHER, {
+      language,
+      id,
+      success,
+      isSolved,
+      result,
+      submitTimestamp,
+      solvedTime,
+      executedTime,
+      ...user,
+    });
+  }
+  async postUserData(
+    email: string,
+    provider: string,
+    desiredCompanies?: string[],
+  ) {
+    let CYPHER = `
+    merge(u:USER{email:$email, provider:$provider})
+    `;
+    if (desiredCompanies !== undefined) {
+      desiredCompanies.map(
+        (data) =>
+          (CYPHER =
+            `match(${data}:COMPANY{name:"${data.toUpperCase()}"})` + CYPHER),
+      );
+      desiredCompanies.map(
+        (data) => (CYPHER += `merge (u)-[:desire]->(${data})`),
+      );
+    }
+    await this.neo4jService.write(CYPHER, { email, provider });
   }
 }

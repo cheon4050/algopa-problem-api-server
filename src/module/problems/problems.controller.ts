@@ -1,10 +1,10 @@
 import {
   BadRequestException,
   Body,
-  Controller,
   Get,
   HttpException,
   Param,
+  Post,
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -15,73 +15,93 @@ import {
   UNAUTHORIZED_USER,
 } from 'src/common/constant/error-code';
 import { User } from 'src/common/decorators/user.decorator';
-import { VersionGet } from 'src/common/decorators/version-get.decorator';
-import { VersionPost } from 'src/common/decorators/version-post.decorator';
 import { IJwtPayload } from 'src/common/interfaces/jwt-payload.interface';
 import { InitializeUserHistoryDto } from './dto/initial-user-history.dto';
+import { UserSolvingHistoryDto } from './dto/user-solving-history.dto';
 import { ProblemDto } from './dto/problem.dto';
+import { TestcaseDto } from './dto/problemTestcase.dto';
 import { RoadmapDto } from './dto/roadmap.dto';
 import { ProblemInfoDto } from './dto/problemInfo.dto';
 import { SolvedProblemDto } from './dto/solved-problem.dto';
 import { ICreateSolvedRelations } from './interfaces/create-solved-relations-request.dto';
 import { RecommendationLimitValidatePipe } from './pipes/recommendation.limit.validate.pipe';
 import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
-import { ProblemInfoIdValidatePipe } from './pipes/problemInfo.id.validate.pipe';
+import { ProblemIdValidatePipe } from './pipes/problemInfo.id.validate.pipe';
 import { ProblemService } from './problems.service';
-import { IProblemInfo } from './interfaces/problem.interface';
-
-@Controller('problems')
+import { VController } from 'src/common/decorators/version-controller';
+import { RoadmapTypeValidatePipe } from './pipes/Roadmap.type.validate.pipe';
+import { IUserProblemSolvingData } from './interfaces/user-problem-solving-history.interface';
+import { RecommendationCompanyValidatePipe } from './pipes/recommendation.company.validate.pipe';
+@VController({ path: 'problems', version: 'v1' })
 export class ProblemController {
   constructor(
     private readonly problemService: ProblemService,
     @InjectAwsService(Lambda) private readonly lambdaService: Lambda,
   ) {}
 
-  @VersionGet({ path: 'roadmap', version: 'v1' })
-  async getRoadmap(@User() user: IJwtPayload): Promise<RoadmapDto> {
-    const result = user
-      ? await this.problemService.getRoadMap(user)
-      : await this.problemService.getDefaultRoadmap();
-
+  @Get('roadmap')
+  async getRoadmap(
+    @User() user: IJwtPayload,
+    @Query('type', RoadmapTypeValidatePipe) type: string,
+  ): Promise<RoadmapDto> {
+    const result = await this.problemService.getRoadmap(type, user);
     return new RoadmapDto(result);
   }
 
-  @VersionGet({ path: 'recommendation', version: 'v1' })
+  @Get('recommendation')
   async recommendProblem(
     @User() user: IJwtPayload,
     @Query('limit', RecommendationLimitValidatePipe) limit: number,
     @Query('type', RecommendationTypeValidatePipe) type: string,
+    @Query('problemId', ProblemIdValidatePipe) problemId: number,
+    @Query('company', RecommendationCompanyValidatePipe) company: string,
   ): Promise<ProblemDto[]> {
-    if (type && !user) {
+    if ((problemId || type || company) && !user) {
       throw new UnauthorizedException({
         code: UNAUTHORIZED_USER,
       });
     }
+    if (problemId) {
+      const check = await this.problemService.checkProblem(problemId);
+      if (check) {
+        throw new BadRequestException({
+          statusCode: 404,
+          code: NOT_FOUND_PROBLEM_ID,
+        });
+      }
+    }
     const result = await this.problemService.recommendProblem(
-      { limit, type },
+      { limit, type, problemId, company },
       user,
     );
 
     return result.map((problem) => new ProblemDto(problem));
   }
 
-  @VersionGet({ path: 'history', version: 'v1' })
+  @Get('history')
   async getUserHistory(@User() user: IJwtPayload): Promise<SolvedProblemDto[]> {
     const result = await this.problemService.getUserHistory(user);
 
     return result.map((problem) => new SolvedProblemDto(problem));
   }
-  @VersionGet({ path: 'info/:id', version: 'v1' })
+  @Get('case/:id')
+  async getProblemTestcase(
+    @Param('id', ProblemIdValidatePipe) id: number,
+  ): Promise<TestcaseDto[]> {
+    const check = await this.problemService.checkProblem(id);
+    if (check) {
+      throw new BadRequestException({
+        statusCode: 404,
+        code: NOT_FOUND_PROBLEM_ID,
+      });
+    }
+    const result = await this.problemService.getProblemTestcase(id);
+    return result;
+  }
+  @Get('info/:id')
   async getProblemsInfo(
-    @Param('id', ProblemInfoIdValidatePipe) id: number,
+    @Param('id', ProblemIdValidatePipe) id: number,
   ): Promise<ProblemInfoDto> {
-    // id가 ㅇ벗으면
-    // const check = await this.problemService.getProblemInfo(id);
-    // if (id == 0){
-    //   throw new BadRequestException({
-    //     code: NOT_FOUND_PROBLEM_ID
-    //   })
-    // }
     const check = await this.problemService.checkProblem(id);
     if (check) {
       throw new BadRequestException({
@@ -93,136 +113,59 @@ export class ProblemController {
     return result;
   }
 
-  @VersionPost({ path: 'initial/history', version: 'v1' })
+  @Post('initial/history')
   async initializeUserHistory(
     @Body() initialUserHistoryData: InitializeUserHistoryDto,
   ): Promise<void> {
-    const { bojId, email, provider } = initialUserHistoryData;
-    this.problemService
-      .getAllProblems()
-      .then((problems) => problems.map(({ number: problemId }) => problemId))
-      .then((problemIds) => {
-        return this.lambdaService
-          .invoke({
-            FunctionName: 'algopa-boj-crawler-2',
-            InvocationType: 'RequestResponse',
-            Payload: JSON.stringify({
-              userId: bojId,
-              problemIds,
-              action: 'user_attempt_count',
-            }),
-          })
-          .promise();
-      })
-      .then((data) => {
-        const { success, statusCode, result } = JSON.parse(
-          data.Payload as string,
-        );
-        if (!success) {
-          throw new HttpException(result, statusCode);
-        }
-
-        this.problemService.createSolvedRelations({
-          email: email,
-          provider: provider,
-          attempts: result,
-        } as ICreateSolvedRelations);
-      })
-      .catch((err) => {});
+    const { email, provider, desiredCompanies } = initialUserHistoryData;
+    this.problemService.postUserData(email, provider, desiredCompanies);
+    // this.problemService
+    //   .getAllProblems()
+    //   .then((problems) => problems.map(({ id: problemId }) => problemId))
+    //   .then((problemIds) => {
+    //     return this.lambdaService
+    //       .invoke({
+    //         FunctionName: 'algopa-boj-crawler-2',
+    //         InvocationType: 'RequestResponse',
+    //         Payload: JSON.stringify({
+    //           userId: bojId,
+    //           problemIds,
+    //           action: 'user_attempt_count',
+    //         }),
+    //       })
+    //       .promise();
+    //   })
+    //   .then((data) => {
+    //     return data;
+    //   })
+    //   .then((data) => {
+    //     const { success, statusCode, result } = JSON.parse(
+    //       data.Payload as string,
+    //     );
+    //     if (!success) {
+    //       throw new HttpException(result, statusCode);
+    //     }
+    //     this.problemService.createSolvedRelations({
+    //       email: email,
+    //       provider: provider,
+    //       attempts: result,
+    //     } as ICreateSolvedRelations);
+    //   })
+    //   .catch((err) => {});
+  }
+  @Post('history/:id')
+  async postUserSolvingHistory(
+    @User() user: IJwtPayload,
+    @Body() UserSolvingData: UserSolvingHistoryDto,
+    @Param('id', ProblemIdValidatePipe) id: number,
+  ): Promise<void> {
+    const check = await this.problemService.checkProblem(id);
+    if (check) {
+      throw new BadRequestException({
+        statusCode: 404,
+        code: NOT_FOUND_PROBLEM_ID,
+      });
+    }
+    this.problemService.postUserSolvingData(UserSolvingData, user, id);
   }
 }
-
-// import { Body, Controller, Query} from '@nestjs/common';
-// import { ProblemsService } from './problems.service';
-// import { VersionGet } from 'src/common/decorators/version-get.decorator';
-// import { RecommendationTypeValidatePipe } from './pipes/recommendation.type.validate.pipe';
-// import { RecommendationLimitValidatePipe } from './pipes/recommendation.limit.validate.pipe';
-// import { IResponse } from 'src/common/interfaces/response.interface';
-// import { IUserRequest } from './interfaces/request/user-request.interface';
-// import { User } from 'src/common/decorators/user.decorator';
-// import { IRoadMapResponse } from './interfaces/roadmap.interface';
-// import { IProblemResponse } from './interfaces/response/problem-response.interface';
-// import { VersionPost } from 'src/common/decorators/version-post.decorator';
-// import { ICreateSolvedRelations } from './interfaces/request/create-solved-relations-request.interface';
-
-// @Controller('problems')
-// export class ProblemsController {
-//   constructor(private readonly problemService: ProblemsService) {}
-
-//   @VersionGet({ path: 'roadmap', version: 'v1' })
-//   async getRoadMap(
-//     @User() user: IUserRequest | null,
-//   ): Promise<IResponse<IRoadMapResponse>> {
-//     return {
-//       success: true,
-//       result: user
-//         ? await this.problemService.getRoadMap(user)
-//         : await this.problemService.getDefaultRoadmap(),
-//     };
-//   }
-
-//   @VersionGet({ path: 'recommendation', version: 'v1' })
-//   async recommendProblem(
-//     @User() user: IUserRequest,
-//     @Query('limit', RecommendationLimitValidatePipe) limit: number,
-//     @Query('type', RecommendationTypeValidatePipe) type: string,
-//   ): Promise<IResponse<IProblemResponse[]>> {
-//     return {
-//       success: true,
-//       result: await this.problemService.recommendProblem(
-//         { limit, type },
-//         user,
-//       ),
-//     };
-//   }
-
-//   @VersionGet({ path: 'history', version: 'v1' })
-//   async getUserHistory(
-//     @User() user: IUserRequest,
-//   ): Promise<IResponse<IProblemResponse[]>> {
-//     return {
-//       success: true,
-//       result: await this.problemService.getUserHistory(user),
-//     };
-//   }
-
-//   @VersionGet({ path: 'all', version: 'v1' })
-//   async getAllProblem(): Promise<IResponse<IProblemResponse[]>> {
-//     return {
-//       success: true,
-//       result: await this.problemService.getAllProblems(),
-//     };
-//   }
-
-//   @VersionGet({ path: 'solved', version: 'v1' })
-//   async getUserSolvedProblems(
-//     @User() user,
-//   ): Promise<IResponse<IProblemResponse[]>> {
-//     return {
-//       success: true,
-//       result: await this.problemService.getUserSolvedProblems(user),
-//     };
-//   }
-
-//   @VersionGet({ path: 'notSolved', version: 'v1' })
-//   async getUserNotSolvedProblems(
-//     @User() user,
-//   ): Promise<IResponse<IProblemResponse[]>> {
-//     return {
-//       success: true,
-//       result: await this.problemService.getUserNotSolvedProblems(user),
-//     };
-//   }
-
-//   @VersionPost({ path: 'solved', version: 'v1' })
-//   async createSolvedRelations(
-//     @Body() solvedProblemsData: ICreateSolvedRelations,
-//   ) {
-//     return {
-//       success: true,
-//       result: await this.problemService.createSolvedRelations(
-//         solvedProblemsData,
-//       ),
-//     };
-//   }
-// }

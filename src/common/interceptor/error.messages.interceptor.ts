@@ -7,8 +7,6 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AppConfigService } from 'src/config/app/config.service';
-import * as Sentry from '@sentry/minimal';
-import { Severity } from '@sentry/node';
 import { ERROR_MESSAGES } from '../constant/error-message';
 
 @Injectable()
@@ -22,18 +20,12 @@ export class ErrorMessagesInterceptor implements NestInterceptor {
           err.response.code &&
           Object.keys(ERROR_MESSAGES).includes(err.response.code)
         ) {
-          Sentry.captureException(err, {
-            level: Severity.Info,
-            tags: {
-              code: err.response.code,
-            },
-          });
           if (this.appConfigService.node === 'develop') {
             err.response.message = ERROR_MESSAGES[err.response.code];
           }
           return throwError(() => err);
         }
-        Sentry.captureException(err);
+
         return throwError(() => err);
       }),
     );
