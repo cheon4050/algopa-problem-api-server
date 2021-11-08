@@ -142,6 +142,7 @@ export class ProblemService {
           queryDict[type],
           company,
         );
+        console.log(recommendProblemNodes);
         if (recommendProblemNodes.length === 0 && type === 'next') {
           recommendProblemNodes = await this.recommendDefaultProblem(
             limit,

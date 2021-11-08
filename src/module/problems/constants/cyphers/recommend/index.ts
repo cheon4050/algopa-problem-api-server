@@ -1,15 +1,14 @@
 export const RECOMMEND_DEFAULT_PROBLEM = `
-match (c:CATEGORY)
-CALL{
-    with c
-    match(c)<-[:main_tag]-(p:PROBLEM)
+call{
+    match (c:CATEGORY)
+    match(c)-[:main_tag]-(p)//-[:recommend]-(:ROADMAP)
+    // where (p)-[:recommend]-(:COMPANY{name:$company})
+    match(c)-[:main_tag]-(p)
     where p.level <= 10
-    return p limit 1
+    optional match(c2:CATEGORY)-[:sub_tag]-(p)
+    return p, [c.name]+collect(c2.name)as category
 }
-match(c)-[:main_tag]-(p)//-[:recommend]-(:ROADMAP)
-// where (p)-[:recommend]-(:COMPANY{name:$company})
-optional match(c2:CATEGORY)-[:sub_tag]-(p)
-return p, [c.name]+collect(c2.name), rand() as ra 
+return distinct p, category, rand() as ra
 order by ra limit toInteger($limit)
 `;
 
@@ -135,7 +134,7 @@ call{
     where not (p2)-[:submit{isSolved:true}]-(u) // and (p2)-[:recommend]-(:COMPANY{name:$company})
     match(p2)-[:main_tag]-(c1:CATEGORY)
     optional match(p2)-[:sub_tag]-(c2:CATEGORY)
-    with p2, [c1.name]+collect(c2.name) as category ,rand() as ra
+    with p2, [c1.name]+collect(c2.name) as category
     return p2, category,rand() as ra
     order by ra limit toInteger($limit)
 }
