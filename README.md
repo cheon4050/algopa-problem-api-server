@@ -1,6 +1,6 @@
 # 개인 맞춤 코딩테스트 학습 서비스 - 알고파(algopa)
 
-Software Maestro 12기 LIMO팀(이종아, 고동천, 박효진) 서비스 `알고파`의 Back-end 레포지토리입니다.
+Software Maestro 12기 LIMO팀(이종아, 고동천, 박효진) 서비스 `알고파`의 문제 추천 서버 레포지토리입니다.
 
 ## 알고파 주요 기능 소개 ✨
 
@@ -20,18 +20,19 @@ Software Maestro 12기 LIMO팀(이종아, 고동천, 박효진) 서비스 `알�
 
 사용자가 별도의 에디터를 활용하여 서비스 이동없이 풀이 과정을 보다 자세하게 기록하여 풀이 과정 리뷰에 도움을 줍니다.
 
-## 기술 스택
+## 기술 스택 🛠
 
-- Language - Typescript
-- Server - Nest.js
-- Database - Neo4j
+- Typescript
+- Nest.js
+- Neo4j
+- AWS EC2
 
-## 서비스 영상
+## 서비스 영상 :movie_camera:
+[영상 링크](https://youtu.be/2iba6R8PK_Q)
 
+## 프로젝트 참여자 👷
 
-## 프로젝트 참여자
-
-**이종아** [whddk4415](https://github.com/whddk4415)
+**이종아** [@whddk4415](https://github.com/whddk4415)
 - 서비스 기획
 - 인증 서버 구현
 - 풀이 과정 기록 및 노트 서버 구현
@@ -40,17 +41,19 @@ Software Maestro 12기 LIMO팀(이종아, 고동천, 박효진) 서비스 `알�
 - 문제 추천 및 로드맵 서버 초기 설계
 - AWS 인프라 구축
 
-**박효진** [gywlsp](https://github.com/gywlsp)
-- 서비스 기획
-- 서비스 UI 설계
-- 서비스 프론트엔드 개발
-- 서비스 컨셉, 기능 소개 영상 시나리오 작성 
-
-**고동천** [cheon4050](https://github.com/cheon4050)
+**고동천** [@cheon4050](https://github.com/cheon4050)
 - 서비스 기획
 - 코딩테스트 문제 분석 및 선정
 - 그래프 DB 설계
 - 문제 추천 엔진 개발
 - 문제 서버 API 설계 및 개발
 
+**박효진** [@gywlsp](https://github.com/gywlsp)
+- 서비스 기획
+- 서비스 UI 설계
+- 서비스 프론트엔드 개발
+- 서비스 컨셉, 기능 소개 영상 시나리오 작성 
 
+## 참고 사항
+
+본 프로젝트는 기능 구현을 위해 백준 문제를 임시 데이터로 사용했습니다.
